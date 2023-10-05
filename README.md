@@ -28,7 +28,3 @@ Currently there are some post-processing needs that users of coastseg have reque
 - **Non-Erodible Line for the Beach:**
 - **Shoreline Position Coefficient of Variation:**
 
----
-
-For detailed usage and more information on each tool, refer to individual documentation or explore the examples provided in the repository.
-
