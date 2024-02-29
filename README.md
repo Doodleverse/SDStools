@@ -29,7 +29,7 @@ Currently there are some post-processing needs that users of coastseg have reque
 - **Quality:** Tools to assess the quality of the shoreline data.
 - **Clouds:** Methods to deal with cloudy data segments and improve accuracy.
 
-### **Time Series Analysis**
+### **Time Series/Seasonality Analysis**
 - **STL:** Utilize STL (Seasonal-Trend decomposition using LOESS) for shoreline time series decomposition.
 - **Seasonal Shorelines:** Analyze the periodic movement of shorelines.
 - **Time Series of Narrowest/Widest Beaches:** Assess the evolution of beach widths over time.
