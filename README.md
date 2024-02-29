@@ -15,6 +15,7 @@ Currently there are some post-processing needs that users of coastseg have reque
 
 ### **Uncertainty**
 - SDS variability quantification and classification
+- nonstationarity detection
 
 ### **Trend analysis**
 - linear trend
@@ -30,6 +31,7 @@ Currently there are some post-processing needs that users of coastseg have reque
 - **Clouds:** Methods to deal with cloudy data segments and improve accuracy.
 
 ### **Time Series/Seasonality Analysis**
+- monthy and yearly averages
 - **STL:** Utilize STL (Seasonal-Trend decomposition using LOESS) for shoreline time series decomposition.
 - **Seasonal Shorelines:** Analyze the periodic movement of shorelines.
 - **Time Series of Narrowest/Widest Beaches:** Assess the evolution of beach widths over time.
