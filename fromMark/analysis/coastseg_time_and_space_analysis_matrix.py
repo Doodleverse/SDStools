@@ -6,11 +6,14 @@ in the time and space domain so that it is equally spaced temporally and spatial
 This will allow for predictive modeling from satellite shoreline data obtained from CoastSeg.
 """
 import os
+import pandas as pd
+import numpy as np
+import geopandas as gpd
 import shoreline_timeseries_analysis_single as stas
 import shoreline_timeseries_analysis_single_spatial as stasp
 
 def main(transect_timeseries_path,
-         config_gdf,
+         config_gdf_path,
          output_folder,
          transect_spacing,
          which_timedelta,
@@ -30,6 +33,15 @@ def main(transect_timeseries_path,
     beware of choosing minimum, with a mix of satellites, the minimum time spacing can be so low that you run into fourier transform problems
     spacedelta (int, optional): custom longshore spacing, do not make this finer than the input transect spacing!!!!
     """
+    ##make directories
+    time_dir = os.path.join(output_folder, 'time')
+    space_dir = os.path.join(output_folder, 'space')
+    dirs = [time_dir, space_dir]
+    for d in dirs:
+        try:
+            os.mkdir(d)
+        except:
+            pass
 
     ##Load in data
     timeseries_data = pd.read_csv(transect_timeseries_path)
@@ -44,22 +56,20 @@ def main(transect_timeseries_path,
     timedeltas = [None]*len(transects)
     for i in range(len(transects)):
         transect_id = transects['id'].iloc[i]
-        
         dates = timeseries_data['dates']
-        
+
         try:
             select_timeseries = np.array(timeseries_data[transect_id])
         except:
-            i=i+1
             continue
-
+        
         transect_ids[i] = transect_id
         
         ##Timeseries processing
         data = pd.DataFrame({'date':dates,
                              'position':select_timeseries})
-        timeseries_analysis_result, output_df, new_timedelta = stas.main_df(df,
-                                                                            output_folder,
+        timeseries_analysis_result, output_df, new_timedelta = stas.main_df(data,
+                                                                            time_dir,
                                                                             transect_id,
                                                                             which_timedelta,
                                                                             timedelta=timedelta)
@@ -67,14 +77,18 @@ def main(transect_timeseries_path,
         output_df = output_df.rename(columns = {'position':transect_id})
         timeseries_dfs[i] = output_df
         timedeltas[i] = new_timedelta
+        if i >5:
+            break
 
     ##Remove Nones in case there were transects in config_gdf with no timeseries data
     transect_ids = [ele for ele in transect_ids if ele is not None]
-    timeseries_dfs = [ele for ele in transect_ids if ele is not None]
-    timedeltas = [ele for ele in transect_ids if ele is not None]
-    
+    timeseries_dfs = [ele for ele in timeseries_dfs if ele is not None]
+    timedeltas = [ele for ele in timedeltas if ele is not None]
+
     ##Make new matrix 
     new_matrix = pd.concat(timeseries_dfs, 1)
+    new_matrix.to_csv(os.path.join(output_folder, 'timeseries_mat_resample_time.csv'))
+    
 
     ##Loop over time
     datetimes = new_matrix.index
@@ -83,37 +97,55 @@ def main(transect_timeseries_path,
     for j in range(len(datetimes)):
         date = datetimes[j]
         try:
-            select_timeseries = np.array(new_matrix.loc[datetime])
+            select_timeseries = np.array(new_matrix.loc[date])
         except:
-            i=i+1
             continue
         
         ##space series processing
         data = pd.DataFrame({'transect_id':transect_ids,
                              'position':select_timeseries})
-        space_series_analysis_result, output_df, new_spacedelta = stasp.main_df(df,
-                                                                                output_folder,
-                                                                                'timestep'+str(i),
+        space_series_analysis_result, output_df, new_spacedelta = stasp.main_df(data,
+                                                                                space_dir,
+                                                                                'timestep'+str(j),
                                                                                 transect_spacing,
                                                                                 which_spacedelta,
                                                                                 spacedelta=spacedelta)
         output_df.set_index(['longshore_position'])
-        output_df = output_df.rename(columns = {'date':date})
-        space_series_dfs[i] = output_df
-        spacedeltas[i] = new_spacedelta
+        output_df = output_df.rename(columns = {'position':date})
+        output_df = output_df.drop(columns =['longshore_position'])
+        space_series_dfs[j] = output_df
+        spacedeltas[j] = new_spacedelta
+        if j>5:
+            break
 
 
     ##Remove nones in case there were times with no data
-    space_series_dfs = [ele for ele in transect_ids if ele is not None]
-    spacedeltas = [ele for ele in transect_ids if ele is not None]
+    space_series_dfs = [ele for ele in space_series_dfs if ele is not None]
+    spacedeltas = [ele for ele in spacedeltas if ele is not None]
     new_matrix = pd.concat(space_series_dfs,1)
-    new_matrix_path = os.path.join(output_folder, 'timeseries_mat_resample.csv')
+    new_matrix = new_matrix.T
+    new_matrix_path = os.path.join(output_folder, 'timeseries_mat_resample_time_space.csv')
     new_matrix.to_csv(new_matrix_path)
 
     return new_matrix_path
     
         
-        
+config_gdf = r'C:\Users\mlundine\OneDrive - DOI\MarkLundine\Code\USGS\ShorelineSandbox\ShorelineSandbox\coastseg_outputs\config_gdf.geojson'
+transect_timeseries_path = r'C:\Users\mlundine\OneDrive - DOI\MarkLundine\Code\USGS\ShorelineSandbox\ShorelineSandbox\coastseg_outputs\transect_time_series.csv'
+output_folder = r'C:\Users\mlundine\OneDrive - DOI\MarkLundine\Code\USGS\ShorelineSandbox\ShorelineSandbox\coastseg_outputs\test'
+transect_spacing = 100
+which_timedelta = 'custom'
+which_spacedelta = 'custom'
+timedelta = '30D'
+spacedelta = 100
+main(transect_timeseries_path,
+     config_gdf,
+     output_folder,
+     transect_spacing,
+     which_timedelta,
+     which_spacedelta,
+     timedelta=timedelta,
+     spacedelta=spacedelta)        
         
         
         

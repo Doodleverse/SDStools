@@ -105,6 +105,18 @@ def get_shoreline_data(csv_path, transect_spacing):
                           index=longshore_position)
     return new_df
 
+def get_shoreline_data_df(df, transect_spacing):
+    """
+    Reads and reformats the timeseries into a pandas dataframe with datetime index
+    """
+    df = df.replace(r'^\s*$', np.nan, regex=True)
+    transect_ids = df['transect_id']
+    longshore_position = np.arange(0, len(transect_ids)*transect_spacing, transect_spacing)
+
+    new_df = pd.DataFrame({'position':df['position'].values},
+                          index=longshore_position)
+    return new_df
+
 def compute_time_delta(df, which_spacedelta):
     """
     Computes average and max time delta for timeseries rounded to days
@@ -327,8 +339,7 @@ def main_df(df,
     spatial_series_analysis_result (dict): results of this cookbook
     """
     ##Step 1: Load in data
-    df = pd.read_csv(csv_path)
-    df = get_shoreline_data(csv_path, transect_spacing)
+    df = get_shoreline_data_df(df, transect_spacing)
     
     ##Step 2: Compute average and max time delta
     if which_spacedelta != 'custom':
@@ -346,7 +357,7 @@ def main_df(df,
 
     ##Step 5: Check for stationarity with ADF test
     stationary_bool = adf_test(df_no_nans['position'])
-    
+
     ##Step 6a: If timeseries stationary, de-mean, compute autocorrelation and approximate entropy
     ##Then make plots
     if stationary_bool == True:
@@ -354,7 +365,7 @@ def main_df(df,
         autocorr_max, lag_max = plot_autocorrelation(output_folder,
                                                      name,
                                                      df_de_meaned)
-        approximate_entropy = compute_approximate_entropy(df_de_meaned['position'],
+        approximate_entropy = compute_approximate_entropy(df_de_meaned['position'].values,
                                                           2,
                                                           np.std(df_de_meaned['position']))
         make_plots(output_folder,
@@ -408,15 +419,15 @@ def main_df(df,
                                       'r_sq':r_sq,
                                       'autocorr_max':autocorr_max,
                                       'lag_max':str(lag_max*new_spacedelta),
-                                      'new_timedelta':str(new_timedelta),
+                                      'new_spacedelta':str(new_spacedelta),
                                       'snr_no_nans':snr_no_nans,
                                       'approx_entropy':approximate_entropy}
 
     result = os.path.join(output_folder, name+'ssa_result.csv')
     with open(result,'w') as f:
         w = csv.writer(f)
-        w.writerow(timeseries_analysis_result.keys())
-        w.writerow(timeseries_analysis_result.values())
+        w.writerow(spatial_series_analysis_result.keys())
+        w.writerow(spatial_series_analysis_result.values())
         
     output_df = pd.DataFrame({'longshore_position':df_no_nans.index,
                               'position':df_no_nans['position']})
@@ -527,16 +538,20 @@ def main(csv_path,
                                       'r_sq':r_sq,
                                       'autocorr_max':autocorr_max,
                                       'lag_max':str(lag_max*new_spacedelta),
-                                      'new_timedelta':str(new_timedelta),
+                                      'new_spacedelta':str(new_spacedelta),
                                       'snr_no_nans':snr_no_nans,
                                       'approx_entropy':approximate_entropy}
 
     result = os.path.join(output_folder, name+'ssa_result.csv')
     with open(result,'w') as f:
         w = csv.writer(f)
-        w.writerow(timeseries_analysis_result.keys())
-        w.writerow(timeseries_analysis_result.values())
-    
+        w.writerow(spatial_series_analysis_result.keys())
+        w.writerow(spatial_series_analysis_result.values())
+        
+    output_df = pd.DataFrame({'longshore_position':df_no_nans.index,
+                              'position':df_no_nans['position']})
+    output_path = os.path.join(output_folder, name+'_resampled.csv')
+    output_df.to_csv(output_path)      
     return spatial_series_analysis_result
 
 
