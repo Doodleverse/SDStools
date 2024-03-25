@@ -126,22 +126,7 @@ def main(transect_timeseries_path,
     return new_matrix_path
     
         
-config_gdf = r'C:\Users\mlundine\OneDrive - DOI\MarkLundine\Code\USGS\ShorelineSandbox\ShorelineSandbox\coastseg_outputs\config_gdf.geojson'
-transect_timeseries_path = r'C:\Users\mlundine\OneDrive - DOI\MarkLundine\Code\USGS\ShorelineSandbox\ShorelineSandbox\coastseg_outputs\transect_time_series.csv'
-output_folder = r'C:\Users\mlundine\OneDrive - DOI\MarkLundine\Code\USGS\ShorelineSandbox\ShorelineSandbox\coastseg_outputs\test'
-transect_spacing = 100
-which_timedelta = 'custom'
-which_spacedelta = 'custom'
-timedelta = '30D'
-spacedelta = 100
-main(transect_timeseries_path,
-     config_gdf,
-     output_folder,
-     transect_spacing,
-     which_timedelta,
-     which_spacedelta,
-     timedelta=timedelta,
-     spacedelta=spacedelta)        
+     
         
         
         
