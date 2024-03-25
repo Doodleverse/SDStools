@@ -77,8 +77,6 @@ def main(transect_timeseries_path,
         output_df = output_df.rename(columns = {'position':transect_id})
         timeseries_dfs[i] = output_df
         timedeltas[i] = new_timedelta
-        if i >5:
-            break
 
     ##Remove Nones in case there were transects in config_gdf with no timeseries data
     transect_ids = [ele for ele in transect_ids if ele is not None]
@@ -115,8 +113,6 @@ def main(transect_timeseries_path,
         output_df = output_df.drop(columns =['longshore_position'])
         space_series_dfs[j] = output_df
         spacedeltas[j] = new_spacedelta
-        if j>5:
-            break
 
 
     ##Remove nones in case there were times with no data

@@ -5,9 +5,6 @@ http://coastsat.wrl.unsw.edu.au/time-series/.
 
 It will download the timeseries data, make plots, and then make a geojson showing the trends.
 """
-
-
-
 import os
 import geopandas as gpd
 import glob
