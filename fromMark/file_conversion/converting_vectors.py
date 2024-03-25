@@ -11,10 +11,14 @@ def shapefile_to_geojson(my_shape_file, out_dir=None):
     if this is not provided then geojson is saved
     to same directory as the input shapefile
     """
+    name = os.path.basename(my_shape_file)
+    name_no_ext = os.path.splitext(my_shape_file)[0]
+    folder = os.path.dirname(my_shape_file)
+    
     if out_dir = None:
-        new_name = os.path.splitext(os.path.basename(myshpfile))[0]+r'.geojson'
+        new_name = os.path.join(folder, name_no_ext+'.geojson'
     else:
-        new_name = os.path.join(out_dir, new_name)
+        new_name = os.path.join(out_dir, name_no_ext+'.geojson'
         
     myshpfile = gpd.read_file(my_shape_file)
     myshpfile.to_file(new_name, driver='GeoJSON')
@@ -41,10 +45,14 @@ def geojson_to_shapefile(my_geojson, out_dir=None):
     if this is not provided then shapefile is saved
     to same directory as the input shapefile
     """
+    name = os.path.basename(my_geojson)
+    name_no_ext = os.path.splitext(my_geojson)[0]
+    folder = os.path.dirname(my_geojson)
+    
     if out_dir = None:
-        new_name = os.path.splitext(os.path.basename(myshpfile))[0]+r'.shp'
+        new_name = os.path.join(folder, name_no_ext+'.shp'
     else:
-        new_name = os.path.join(out_dir, new_name)
+        new_name = os.path.join(out_dir, name_no_ext+'.shp'
         
     myshpfile = gpd.read_file(my_geojson)
     myshpfile.to_file(new_name)
