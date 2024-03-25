@@ -1,8 +1,7 @@
 """
 Mark Lundine
-This is an in-progress script with tools for processing 1D shoreline timeseries data.
-
-Updates needed!!
+This is a script with tools for
+processing 1D shoreline timeseries data in the space domain.
 """
 import numpy as np
 import matplotlib.pyplot as plt

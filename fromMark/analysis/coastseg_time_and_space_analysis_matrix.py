@@ -1,7 +1,6 @@
 """
 Mark Lundine
-This script is in progress.
-The goal is to take the CoastSeg matrix and resample it intelligently.
+This script takes the CoastSeg matrix and resamples it intelligently
 in the time and space domain so that it is equally spaced temporally and spatially.
 This will allow for predictive modeling from satellite shoreline data obtained from CoastSeg.
 """
