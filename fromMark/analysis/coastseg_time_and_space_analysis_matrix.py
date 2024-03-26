@@ -125,16 +125,6 @@ def main(transect_timeseries_path,
     new_matrix_path = os.path.join(output_folder, 'timeseries_mat_resample_time_space.csv')
     new_matrix.to_csv(new_matrix_path)
     return new_matrix_path
-    
-        
-main(r'C:\Users\mlundine\OneDrive - DOI\MarkLundine\Code\USGS\ShorelineSandbox\ShorelineSandbox\coastseg_outputs\transect_time_series.csv',
-     r'C:\Users\mlundine\OneDrive - DOI\MarkLundine\Code\USGS\ShorelineSandbox\ShorelineSandbox\coastseg_outputs\config_gdf.geojson',
-     r'C:\Users\mlundine\OneDrive - DOI\MarkLundine\Code\USGS\ShorelineSandbox\ShorelineSandbox\coastseg_outputs\test2',
-     100,
-     'custom',
-     'custom',
-     timedelta='30D',
-     spacedelta=100)
         
         
         

@@ -227,7 +227,7 @@ def process_results(sitename,
         plt.savefig(os.path.join(folder, site+'_predict.png'), dpi=300)
         plt.close('all')
 
-        predict_df_dict = {'time': date_predict,
+        predict_df_dict = {'date': date_predict,
                            'predicted_mean_position': prediction_mean,
                            'predicted_upper_conf': upper_conf_interval,
                            'predicted_lower_conf': lower_conf_interval,
@@ -249,10 +249,10 @@ def process_results(sitename,
         plt.minorticks_on()
         plt.legend(loc='best')
         plt.tight_layout()
-        plt.savefig(os.path.join(folder, site+'_project.png'), dpi=300)
+        plt.savefig(os.path.join(folder, site+'_forecast.png'), dpi=300)
         plt.close('all')
 
-        forecast_df_dict = {'time': forecast_dates,
+        forecast_df_dict = {'date': forecast_dates,
                             'forecast_mean_position': forecast_mean,
                             'forecast_upper_conf': upper_conf_interval,
                             'forecast_lower_conf': lower_conf_interval}
@@ -279,9 +279,9 @@ def plot_history(history):
 def main(sitename,
          coastseg_matrix_path,
          bootstrap=30,
-         num_prediction=40,
+         num_prediction=30,
          num_epochs=2000,
-         units=80,
+         units=64,
          batch_size=32,
          look_back=3,
          split_percent=0.80,
@@ -375,6 +375,15 @@ def main(sitename,
 
     predict_stacked_df = pd.concat(predict_dfs, keys=transect_ids)
     forecast_stacked_df = pd.concat(forecast_dfs, keys=transect_ids)
+    
+    predict_stacked_df = predict_stacked_df.reset_index()
+    forecast_stacked_df = forecast_stacked_df.reset_index()
+
+    predict_stacked_df.drop(columns=['level_1'],inplace=True)
+    forecast_stacked_df.drop(columns=['level_1'],inplace=True)
+
+    predict_stacked_df.rename(columns={'level_0':'transect_id'},inplace=True)
+    forecast_stacked_df.rename(columns={'level_0':'transect_id'},inplace=True)
 
     predict_stacked_df.to_csv(os.path.join(output_folder, 'predict_stacked.csv'))
     forecast_stacked_df.to_csv(os.path.join(output_folder, 'forecast_stacked.csv'))
@@ -421,8 +430,6 @@ def main(sitename,
 ##         look_back=args.lookback,
 ##         split_percent=args.split_percent,
 ##         freq=args.freq)   
-
-
 
 
     
