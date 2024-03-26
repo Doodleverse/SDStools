@@ -286,17 +286,17 @@ def run(csv_path,
     plt.minorticks_on()
     plt.xlim(min(date_train), max(date_test))
     plt.tight_layout()
-    plt.savefig(os.path.join(folder, site+'predict.png'), dpi=300)
+    plt.savefig(os.path.join(folder, site+'_predict.png'), dpi=300)
     plt.close('all')
 
     ##Save observed time period data to csv
-    new_df_dict = {'time': date_predict,
-                   'forecast_mean_position': prediction_mean,
-                   'forecast_upper_conf': pred_upper_conf_interval,
-                   'forecast_lower_conf': pred_lower_conf_interval,
-                   'observed_position': df['position'][lookback:]}
-    new_df = pd.DataFrame(new_df_dict)
-    new_df.to_csv(os.path.join(folder, site+'predict.csv'),index=False)
+    predict_df_dict = {'time': date_predict,
+                       'forecast_mean_position': prediction_mean,
+                       'forecast_upper_conf': pred_upper_conf_interval,
+                       'forecast_lower_conf': pred_lower_conf_interval,
+                       'observed_position': df['position'][lookback:]}
+    predict_df = pd.DataFrame(predict_df_dict)
+    predict_df.to_csv(os.path.join(folder, site+'_predict.csv'),index=False)
 
     ##Plot for projections
     plt.plot(df['date'], df['position'], color='blue',label='Observed Three Month Moving Average')
@@ -308,16 +308,16 @@ def run(csv_path,
     plt.minorticks_on()
     plt.legend(loc='best')
     plt.tight_layout()
-    plt.savefig(os.path.join(folder, site+'project.png'), dpi=300)
+    plt.savefig(os.path.join(folder, site+'_project.png'), dpi=300)
     plt.close('all')
 
-    ##Save projections to csv
-    new_df_dict = {'time': forecast_dates,
-                   'forecast_mean_position': forecast_mean,
-                   'forecast_upper_conf': upper_conf_interval,
-                   'forecast_lower_conf': lower_conf_interval}
-    new_df = pd.DataFrame(new_df_dict)
-    new_df.to_csv(os.path.join(folder, site+'project.csv'),index=False)
+    ##Save forecasts to csv
+    forecast_df_dict = {'time': forecast_dates,
+                        'forecast_mean_position': forecast_mean,
+                        'forecast_upper_conf': upper_conf_interval,
+                        'forecast_lower_conf': lower_conf_interval}
+    forecast_df = pd.DataFrame(forecast_df_dict)
+    forecast_df.to_csv(os.path.join(folder, site+'_project.csv'),index=False)
 
     ##Making the loss curve plot
     i = 0

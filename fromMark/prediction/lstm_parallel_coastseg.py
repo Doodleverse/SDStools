@@ -1,8 +1,6 @@
 """
 Mark Lundine
 Trains a parallel LSTM model given a matrix of shoreline positions (x-dimension is longshore distance, y-dimension is time)
-
-This script is in-progress and not funcitonal as of 3/25/2024.
 """
 import numpy as np
 import os
@@ -24,101 +22,11 @@ from tensorflow.keras.layers import BatchNormalization
 from sklearn.preprocessing import MinMaxScaler, RobustScaler, StandardScaler
 import gc
 plt.rcParams["figure.figsize"] = (16,6)
-
-def coastseg_matrix_to_timeseries(transect_timeseries_resampled_matrix_path,
-                                  config_gdf_path,
-                                  freq='30D'):
-    """
-    Saving individual timeseries csv and figures from CoastSeg matrix output
-    inputs:
-    transect_timeseries_path (str): path to the transect_time_series.csv or transect_time_series_tidally_corrected_matrix
-    config_gdf_path (str): path to the config_gdf.geojson
-    frequency: frequency to resample at
-    outputs:
-    timeseries_csv_dir (str): path to where all of the csvs are saved
-    transect_ids (list): list of all of the transect ids associated with timeseries data
-    """
-
-    ##Load in data
-    timeseries_data = pd.read_csv(transect_timeseries_path)
-    timeseries_data['dates'] = pd.to_datetime(timeseries_data['dates'],
-                                              format='%Y-%m-%d %H:%M:%S+00:00')
-    config_gdf = gpd.read_file(config_gdf_path)
-    transects = config_gdf[config_gdf['type']=='transect']
-
-    ##Make new directories
-    home = os.path.dirname(transect_timeseries_path)
-    lstm_dir = os.path.join(home, 'lstm')
-    timeseries_mat_path = os.path.join(os.path.dirname(transect_timeseries_path), 'timseries_mat.csv')
-    timeseries_csv_dir = os.path.join(home, 'timeseries_csvs')
-    timeseries_plot_dir = os.path.join(home, 'timeseries_plots')
-    dirs = [lstm_dir, timeseries_csv_dir, timeseries_plot_dir]
-    
-    for d in dirs:
-        try:
-            os.mkdir(d)
-        except:
-            pass
-
-    timeseries_csvs = [None]*len(transects)
-    transect_ids = [None]*len(transects)
-    timeseries_mat_list = [None]*len(transects)
-    for i in range(len(transects)):
-        transect_id = transects['id'].iloc[i]
-        timeseries_csv_path = os.path.join(timeseries_csv_dir, transect_id+'.csv')
-        timeseries_plot_path = os.path.join(timeseries_plot_dir, transect_id+'_timeseries.png')
         
-        dates = timeseries_data['dates']
-        
-        try:
-            select_timeseries = np.array(timeseries_data[transect_id])
-        except:
-            i=i+1
-            continue
-
-        transect_ids[i] = transect_id
-        
-        ##Some simple timeseries processing
-        data = pd.DataFrame({'distances':select_timeseries},
-                            index=dates)
-        
-        ##de-meaning the timeseries
-        y = data['distances'].rolling(freq, min_periods=1).mean().resample(freq).ffill().dropna()
-        #meany = np.mean(y)
-        #y = y-meany
-        
-        ##make plot
-        plt.rcParams["figure.figsize"] = (16,4)
-        plt.plot(y.index, y, '--o', color='k', label=freq + ' Running Mean')
-        plt.xlabel('Time (UTC)')
-        plt.ylabel('Cross-Shore Distance (m)')
-        plt.xlim(min(y.index), max(y.index))
-        plt.ylim(min(y), max(y))
-        plt.minorticks_on()
-        plt.legend()
-        plt.tight_layout()
-        plt.savefig(timeseries_plot_path, dpi=300)
-        plt.close()
-        
-        
-
-        data.to_csv(timeseries_csv_path)
-        timeseries_csvs[i] = timeseries_csv_path
-        timeseries_mat_list[i] = y
-
-    timeseries_mat_list = [ele for ele in transect_ids if ele is not None]
-    timeseries_mat = pd.concat(timeseries_mat_list, 1)
-    timeseries_mat = timeseries_mat.dropna()
-    timeseries_mat = timeseries_mat.reset_index()
-    timeseries_mat.to_csv(timeseries_mat_path)
-    transect_ids = [ele for ele in transect_ids if ele is not None]
-    
-    
-    return timeseries_data, transect_ids
-
-        
-# split a multivariate sequence into samples
 def split_sequences(sequences, n_steps_in, n_steps_out):
+    """
+    split a multivariate sequence into samples
+    """
     X, y = list(), list()
     for i in range(len(sequences)):
         # find the end of this pattern
@@ -138,7 +46,9 @@ def setup_data(timeseries_mat,
                split_percent,
                look_back,
                batch_size):
-    
+    """
+    Organizes data to be keras-ready
+    """
     ###load matrix and reshape to make a stacked timeseries
     dataset_list = []
     for transect_id in transect_ids:
@@ -162,8 +72,6 @@ def setup_data(timeseries_mat,
  
     return dataset, train_generator, test_generator, n_features, prediction_generator
 
-
-
 def project(timeseries_mat,
             dataset,
             look_back,
@@ -171,8 +79,9 @@ def project(timeseries_mat,
             n_features,
             model,
             freq):
-
-
+    """
+    Projects data beyond observed temporal range
+    """
     ##original dimesion is time x transect
     prediction_mat = np.zeros((num_prediction+look_back, n_features))
     prediction_mat[0:look_back,:] = dataset[-look_back:, :]
@@ -189,7 +98,7 @@ def project(timeseries_mat,
     ##potentially use scaler here to normalize data
     #prediction = scaler.inverse_transform(prediction)
 
-    last_date = timeseries_mat['dates'].iloc[-1]
+    last_date = timeseries_mat['date'].iloc[-1]
     prediction_dates = pd.date_range(last_date, periods=num_prediction+1, freq=freq).tolist()
         
 
@@ -198,8 +107,10 @@ def project(timeseries_mat,
 
     return forecast, forecast_dates
 
-# Reset Keras Session
 def reset_keras():
+    """
+    Used to reset keras session and clear memory
+    """
     ## this function is for clearing memory
     sess = keras.backend.get_session()
     keras.backend.clear_session()
@@ -219,11 +130,20 @@ def train_model(train_generator,
                 look_back,
                 units,
                 n_features):
+    """
+    Training the parallel LSTM model
 
-    ### define model, two bidirection lstm layers and one dense layer, each with n units
-    ### relu activation function
-    ### look_back is number of previous data points to use in the prediction of the next data point
-    ### n_features is the number of transects
+    define model, two bidirection lstm layers and one dense layer, each with n units
+    relu activation function
+    use recurrent dropout
+    look_back is number of previous data points to use in the prediction of the next data point
+    n_features is the number of transects
+    early stopping callback where best weights are restored
+    loss function is mean absolute error
+    optimizer is adam
+
+    returns: model and history
+    """
     model = Sequential()
     
     model.add(Bidirectional(LSTM(units,
@@ -260,7 +180,6 @@ def predict_data(model, prediction_generator):
     #prediction = scaler.inverse_transform(prediction)
     return prediction
 
-
 def process_results(sitename,
                     folder,
                     transect_ids,
@@ -279,7 +198,8 @@ def process_results(sitename,
     """
     n_features = np.shape(mega_arr_pred)[1]
     bootstrap = np.shape(mega_arr_pred)[2]
-
+    forecast_dfs = [None]*len(transect_ids)
+    predict_dfs = [None]*len(transect_ids)
     for i in range(len(transect_ids)):
         site = sitename+'_'+str(transect_ids[i])
         transect_data = mega_arr_pred[:,i,:]
@@ -304,16 +224,16 @@ def process_results(sitename,
         plt.minorticks_on()
         plt.legend(loc='best')
         plt.tight_layout()
-        plt.savefig(os.path.join(folder, site+'predict.png'), dpi=300)
+        plt.savefig(os.path.join(folder, site+'_predict.png'), dpi=300)
         plt.close('all')
 
-        new_df_dict = {'time': date_predict,
-                       'predicted_mean_position': prediction_mean,
-                       'predicted_upper_conf': upper_conf_interval,
-                       'predicted_lower_conf': lower_conf_interval,
-                       'observed_position': gt_vals[lookback:]}
-        new_df = pd.DataFrame(new_df_dict)
-        new_df.to_csv(os.path.join(folder, site+'predict.csv'),index=False)
+        predict_df_dict = {'time': date_predict,
+                           'predicted_mean_position': prediction_mean,
+                           'predicted_upper_conf': upper_conf_interval,
+                           'predicted_lower_conf': lower_conf_interval,
+                           'observed_position': gt_vals[lookback:]}
+        predict_df = pd.DataFrame(predict_df_dict)
+        predict_df.to_csv(os.path.join(folder, site+'_predict.csv'),index=False)
 
         forecast_array = mega_arr_forecast[:,i,:]
         forecast_mean = np.mean(forecast_array, axis=1)
@@ -329,17 +249,22 @@ def process_results(sitename,
         plt.minorticks_on()
         plt.legend(loc='best')
         plt.tight_layout()
-        plt.savefig(os.path.join(folder, site+'project.png'), dpi=300)
+        plt.savefig(os.path.join(folder, site+'_project.png'), dpi=300)
         plt.close('all')
 
-        new_df_dict = {'time': forecast_dates,
-                       'forecast_mean_position': forecast_mean,
-                       'forecast_upper_conf': upper_conf_interval,
-                       'forecast_lower_conf': lower_conf_interval}
-        new_df = pd.DataFrame(new_df_dict)
-        new_df.to_csv(os.path.join(folder, site+'project.csv'),index=False)
-
+        forecast_df_dict = {'time': forecast_dates,
+                            'forecast_mean_position': forecast_mean,
+                            'forecast_upper_conf': upper_conf_interval,
+                            'forecast_lower_conf': lower_conf_interval}
         
+        forecast_df = pd.DataFrame(forecast_df_dict)
+        forecast_df.to_csv(os.path.join(folder, site+'_forecast.csv'),index=False)
+
+        predict_dfs[i] = predict_df
+        forecast_dfs[i] = forecast_df
+        
+    return predict_dfs, forecast_dfs
+      
 def plot_history(history):
     """
     This makes a plot of the loss curve
@@ -352,8 +277,7 @@ def plot_history(history):
     plt.legend(['Training Data', 'Validation Data'],loc='upper right')
     
 def main(sitename,
-         transect_timeseries_path,
-         config_gdf_path,
+         coastseg_matrix_path,
          bootstrap=30,
          num_prediction=40,
          num_epochs=2000,
@@ -366,9 +290,7 @@ def main(sitename,
     Trains parallel LSTM model on shoreline data
     inputs:
     sitename (str): name of the sitename/study area
-    transect_timeseries_path (str): path to the transect_time_series.csv
-    config_gdf_path (str): path to the config_gdf.geojson
-    output_folder (str): path to output results to
+    coastseg_matrix_path (str): path to the matrix output from coastseg_time_and_space_analysis_matrix.py
     bootstrap (int): number of times to train the model
     num_prediction (int): number of timesteps to project model
     num_epochs (int): number of epochs to train the model
@@ -376,7 +298,7 @@ def main(sitename,
     batch_size (int): batch size for training
     look_back (int): number of previous timesteps to use to predict next value
     split_percent (int): fraction of timeseries to use as training data
-    freq (str): timestep to use monthly would be '30D' or '31D'
+    freq (str): timestep, this should match the timedelta of the coastseg_matrix
     """
     ## just naming these variables again for my sanity
     look_back=look_back
@@ -386,19 +308,19 @@ def main(sitename,
     num_epochs=num_epochs
     units=units
 
-    output_folder = os.path.join(os.path.dirname(transect_timeseries_path), 'lstm')
+    output_folder = os.path.join(os.path.dirname(coastseg_matrix_path), 'lstm')
     try:
         os.mkdir(output_folder)
     except:
         pass
     
     ## need to get a slightly altered timeseries matrix and the transect ids with timeseries data
-    timeseries_mat, transect_ids = coastseg_matrix_to_timeseries(transect_timeseries_resampled_matrix_path,
-                                                                 config_gdf_path,
-                                                                 freq='30D')
-
+    timeseries_mat = pd.read_csv(coastseg_matrix_path)
+    timeseries_mat['date'] = pd.to_datetime(timeseries_mat['date'], format = '%Y-%m-%d')
+    
     ## get dates of observed data and model ready datasets
-    observed_dates = timeseries_mat['dates']
+    observed_dates = timeseries_mat['date']
+    transect_ids = list(timeseries_mat.columns[1:])
     dataset, train_generator, test_generator, n_features, prediction_generator = setup_data(timeseries_mat,
                                                                                             transect_ids,
                                                                                             split_percent,
@@ -428,7 +350,7 @@ def main(sitename,
         prediction = predict_data(model, prediction_generator)
         mega_arr_pred[:,:,i] = prediction
 
-        ## getting projections
+        ## getting projections/forecasts
         forecast, forecast_dates = project(timeseries_mat,
                                            dataset,
                                            look_back,
@@ -438,19 +360,26 @@ def main(sitename,
                                            freq)
         mega_arr_forecast[:,:,i] = forecast
         
-
     ## plotting data and exporting csvs for each timeseries
-    process_results(sitename,
-                    output_folder,
-                    transect_ids,
-                    mega_arr_pred,
-                    dataset,
-                    observed_dates,
-                    date_predict,
-                    forecast_dates,
-                    mega_arr_forecast,
-                    look_back,
-                    split_percent)
+    predict_dfs, forecast_dfs = process_results(sitename,
+                                                output_folder,
+                                                transect_ids,
+                                                mega_arr_pred,
+                                                dataset,
+                                                observed_dates,
+                                                date_predict,
+                                                forecast_dates,
+                                                mega_arr_forecast,
+                                                look_back,
+                                                split_percent)
+
+    predict_stacked_df = pd.concat(predict_dfs, keys=transect_ids)
+    forecast_stacked_df = pd.concat(forecast_dfs, keys=transect_ids)
+
+    predict_stacked_df.to_csv(os.path.join(output_folder, 'predict_stacked.csv'))
+    forecast_stacked_df.to_csv(os.path.join(output_folder, 'forecast_stacked.csv'))
+
+    ##Plot the loss curves
     i = 0
     for history in histories:
         # convert the history.history dict to a pandas DataFrame:     
@@ -462,39 +391,36 @@ def main(sitename,
         i=i+1
     plt.savefig(os.path.join(output_folder, 'loss_plot.png'), dpi=300)
     plt.close('all')
+
+    ##reset keras again
     sess = keras.backend.get_session()
     keras.backend.clear_session()
     sess.close()
     
-if __name__ == "__main__":
-    from argparse import ArgumentParser
-    parser = ArgumentParser()
-    parser.add_argument("--transect_timeseries_resampled_matrix_path", type=str,required=True,help="path to resampled matrix")
-    parser.add_argument("--config_gdf_path", type=str, required=True,help="path to config_gdf.geojson")
-    parser.add_argument("--site", type=str,required=True, help="site name")
-    parser.add_argument("--bootstrap", type=int, required=True, help="number of repeat trials")
-    parser.add_argument("--num_prediction",type=int, required=True, help="number of predictions")
-    parser.add_argument("--epochs",type=int, required=True, help="number of epochs to train")
-    parser.add_argument("--units",type=int, required=True, help="number of LSTM layers")
-    parser.add_argument("--batch_size",type=int, required=True, help="training batch size")
-    parser.add_argument("--lookback",type=int, required=True, help="look back value")
-    parser.add_argument("--split_percent",type=float, required=True, help="training data fraction")
-    parser.add_argument("--freq", type=str, required=True, help="prediction frequency (monthly, seasonally, biannually, yearly")
-    args = parser.parse_args()
-    main(args.site,
-         args.transect_timeseries_resampled_matrix_path,
-         args.config_gdf_path,
-         bootstrap=args.bootstrap,
-         num_prediction=args.num_prediction,
-         num_epochs=args.epochs,
-         units=args.units,
-         batch_size=args.batch_size,
-         look_back=args.lookback,
-         split_percent=args.split_percent,
-         freq=args.freq)   
-
-
-
+##if __name__ == "__main__":
+##    from argparse import ArgumentParser
+##    parser = ArgumentParser()
+##    parser.add_argument("--site", type=str,required=True, help="site name")
+##    parser.add_argument("--coastseg_matrix", type=str,required=True,help="path to resampled matrix")
+##    parser.add_argument("--bootstrap", type=int, required=True, help="number of repeat trials")
+##    parser.add_argument("--num_prediction",type=int, required=True, help="number of predictions")
+##    parser.add_argument("--epochs",type=int, required=True, help="number of epochs to train")
+##    parser.add_argument("--units",type=int, required=True, help="number of LSTM layers")
+##    parser.add_argument("--batch_size",type=int, required=True, help="training batch size")
+##    parser.add_argument("--lookback",type=int, required=True, help="look back value")
+##    parser.add_argument("--split_percent",type=float, required=True, help="training data fraction")
+##    parser.add_argument("--freq", type=str, required=True, help="prediction frequency (monthly, seasonally, biannually, yearly")
+##    args = parser.parse_args()
+##    main(args.site,
+##         args.coastseg_matrix_path,
+##         bootstrap=args.bootstrap,
+##         num_prediction=args.num_prediction,
+##         num_epochs=args.epochs,
+##         units=args.units,
+##         batch_size=args.batch_size,
+##         look_back=args.lookback,
+##         split_percent=args.split_percent,
+##         freq=args.freq)   
 
 
 

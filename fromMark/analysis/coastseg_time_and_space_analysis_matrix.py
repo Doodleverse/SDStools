@@ -113,19 +113,28 @@ def main(transect_timeseries_path,
         space_series_dfs[j] = output_df
         spacedeltas[j] = new_spacedelta
 
-
     ##Remove nones in case there were times with no data
     space_series_dfs = [ele for ele in space_series_dfs if ele is not None]
     spacedeltas = [ele for ele in spacedeltas if ele is not None]
     new_matrix = pd.concat(space_series_dfs,1)
     new_matrix = new_matrix.T
+    new_matrix.index.name = 'date'
+    longshore_index_mat_path = os.path.join(output_folder, 'timeseries_mat_resample_time_space_longshore_index.csv')
+    new_matrix.to_csv(longshore_index_mat_path)
+    new_matrix.columns = transect_ids
     new_matrix_path = os.path.join(output_folder, 'timeseries_mat_resample_time_space.csv')
     new_matrix.to_csv(new_matrix_path)
-
     return new_matrix_path
     
         
-     
+main(r'C:\Users\mlundine\OneDrive - DOI\MarkLundine\Code\USGS\ShorelineSandbox\ShorelineSandbox\coastseg_outputs\transect_time_series.csv',
+     r'C:\Users\mlundine\OneDrive - DOI\MarkLundine\Code\USGS\ShorelineSandbox\ShorelineSandbox\coastseg_outputs\config_gdf.geojson',
+     r'C:\Users\mlundine\OneDrive - DOI\MarkLundine\Code\USGS\ShorelineSandbox\ShorelineSandbox\coastseg_outputs\test2',
+     100,
+     'custom',
+     'custom',
+     timedelta='30D',
+     spacedelta=100)
         
         
         
