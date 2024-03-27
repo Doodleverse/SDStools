@@ -8,9 +8,11 @@ Some tools for building data-driven predictive models from satellite shoreline d
 
 Generate tidally corrected shoreline data with CoastSeg.
 
+You will need the file 'tidally_corrected_transect_time_series.csv' and 'config_gdf.geojson'.
+
 # Step 1: lstm_parallel_coastseg.py
 
-Run data through SDSTools/fromMark/analysis/coastseg_time_and_space_analysis_matrix.py.
+Run 'tidally_corrected_transect_time_series.csv' through SDSTools/fromMark/analysis/coastseg_time_and_space_analysis_matrix.py.
 
 This ensures that you get an evenly sampled matrix in the time and space domain. There is a ton more information this script outputs too.
 
@@ -25,15 +27,15 @@ So gather 'timeseries_mat_resample_time_space.csv' and the 'config_gdf.geojson' 
 The script to use is lstm_parallel_coastseg.py.
 
 	def main(sitename,
-			 coastseg_matrix_path,
-			 bootstrap=30,
-			 num_prediction=30,
-			 num_epochs=2000,
-			 units=64,
-			 batch_size=32,
-			 look_back=3,
-			 split_percent=0.80,
-			 freq='30D'):
+		 coastseg_matrix_path,
+		 bootstrap=30,
+		 num_prediction=30,
+		 num_epochs=2000,
+		 units=64,
+		 batch_size=32,
+		 look_back=3,
+		 split_percent=0.80,
+		 freq='30D'):
 		"""
 		Trains parallel LSTM model on shoreline data
 		inputs:
@@ -50,19 +52,27 @@ The script to use is lstm_parallel_coastseg.py.
 		"""
 
 Try running this on your data with the default values for
-bootstrap, num_prediction, num_epochs, units, batch_size, look_back, and split_percent.
+
+* bootstrap
+* num_prediction
+* num_epochs
+* units
+* batch_size
+* look_back
+* split_percent
 
 Make sure freq matches the time-spacing you used in SDSTools/fromMark/analysis/coastseg_time_and_space_analysis_matrix.py.
 
-This will output a two plots and two csvs for each transect (one for the observed temporal range and one for the forecasted temporal range).
+This will output two plots and two csvs for each transect (one for the observed temporal range and one for the forecasted temporal range).
 
-It will also output csvs for each training run and a final plot showing the loss curves over each training run.
+It will also output history csvs for each training run and a final plot showing the loss curves over each training run.
 
-It will also output two csvs (observed period and forecast period)
-where all of the data is stacked (with an additional column 'transect_id' indicating which transect the data is from).
- 
- 'forecast_stacked.csv' and 'predict_stacked.csv'
- These two files will be used in the next step.
+It will also output two csvs:
+
+* 'predict_stacked.csv'(observed temporal period)
+* 'forecast_stacked.csv' (forecast temporal period)
+
+where all of the data is stacked (with an additional column 'transect_id' indicating which transect the data is from). 
  
  # Step 2: lstm_2D_projection_coastseg.py
  
@@ -70,12 +80,12 @@ where all of the data is stacked (with an additional column 'transect_id' indica
  mean shorelines and confidence interval polygons.
  
 	 def main(sitename,
-			 coastseg_matrix_path,
-			 forecast_stacked_df_path,
-			 predict_stacked_df_path,
-			 save_folder,
-			 config_gdf_path,
-			 switch_dir=False):
+		  coastseg_matrix_path,
+		  forecast_stacked_df_path,
+		  predict_stacked_df_path,
+		  save_folder,
+		  config_gdf_path,
+		  switch_dir=False):
 		"""
 		Takes projected cross-shore positions and uncertainties and constructs 2D projected shorelines/uncertainties
 		Saves these to two shapefiles (mean shorelines and confidence intervals)
@@ -103,11 +113,20 @@ You also need the path to the stacked forecasts and predictions which are output
  
  This will output new csvs for the observed temporal period and forecasted temporal period, and for each transect with the additional columns:
  
- eastings_mean_utm, northings_mean_utm, eastings_upper_utm, northings_upper_utm, eastings_lower_utm, northings_lower_utm
+* eastings_mean_utm
+* northings_mean_utm
+* eastings_upper_utm
+* northings_upper_utm
+* eastings_lower_utm
+* northings_lower_utm
+* eastings_mean_wgs84
+* northings_mean_wgs84
+* eastings_upper_wgs84
+* northings_upper_wgs84
+* eastings_lower_wgs84
+* northings_lower_wgs84
  
- eastings_mean_wgs84, northings_mean_wgs84, eastings_upper_wgs84, northings_upper_wgs84, eastings_lower_wgs84, northings_lower_wgs84
- 
- So basically all the model outputs' coordinates in utm and wgs84.
+ So basically all of the model outputs' coordinates in utm and wgs84.
  
  It will also stack these csvs into two dataframes (forecast_stacked.csv and predict_stacked.csv).
  
@@ -117,7 +136,7 @@ You also need the path to the stacked forecasts and predictions which are output
  * One will have the mean shorelines during the forecasted temporal period.
  * One will have the confidence interval polygons for the forecasted temporal period.
  
- These geojson will have the timestamps and year as columns that may be useful for constructing maps.
+ These geojsons will have the timestamps and year as columns that may be useful for constructing maps.
  
  # Future Work
  
