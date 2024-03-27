@@ -1,12 +1,15 @@
 """
 Mark Lundine
 Trains a parallel LSTM model given a matrix of shoreline positions (x-dimension is longshore distance, y-dimension is time)
+To make a prediction, the model uses the previous n positions across every transect.
+Its output is the next position at every transect.
+If we have a matrix with all of the cross-shore positions, with y as our time dimension and x as our spatial dimension,
+this model essentially is making the next row of cross-shore positions based on the previous n rows.
 """
 import numpy as np
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
-import geopandas as gpd
 import warnings
 warnings.filterwarnings("ignore")
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -141,7 +144,7 @@ def train_model(train_generator,
     early stopping callback where best weights are restored
     loss function is mean absolute error
     optimizer is adam
-
+    
     returns: model and history
     """
     model = Sequential()
@@ -176,6 +179,9 @@ def train_model(train_generator,
     return model, history
 
 def predict_data(model, prediction_generator):
+    """
+    Generating predictions from a trained model and a prediction generator
+    """
     prediction = model.predict_generator(prediction_generator)
     #prediction = scaler.inverse_transform(prediction)
     return prediction
@@ -193,8 +199,21 @@ def process_results(sitename,
                     split_percent):
     """
     This function makes two plots, one with the model results overlaying the satellite timeseries
-    The other plot with the projected results
+    The other plot with the forecasted results
     So two plots for each transect
+    It also saves csvs for the forecasted timeseries and the predicted timeseries
+    inputs:
+    sitename (str): name of site
+    folder (str): path to save outputs
+    transect_ids (array): transect ids in an array (in order along the shore)
+    mega_arr_pred (array): array with all of the predictions (model outputs during observed temporal range)
+    dataset (hstack): hstack of observed data
+    observed_dates (array): array of the observed dates
+    date_predict (array): array of the predicted dates
+    forecast_dates (array): array of the forecasted dates
+    mega_arr_forecast (array): array of all the model outputs for the forecast period
+    lookback (int): lookback value
+    split_percent (float): train/val split fraction (0.80 for 80/20 split)
     """
     n_features = np.shape(mega_arr_pred)[1]
     bootstrap = np.shape(mega_arr_pred)[2]
@@ -268,6 +287,8 @@ def process_results(sitename,
 def plot_history(history):
     """
     This makes a plot of the loss curve
+    inputs:
+    history: history object from model.fit_generator
     """
     plt.plot(history.history['loss'], color='b')
     plt.plot(history.history['val_loss'], color='r')

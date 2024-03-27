@@ -3,8 +3,6 @@ Mark Lundine
 Taking outputs from lstm_parallel_coastseg.py and re-casting them into
 geographic coordinates to make GIS outputs
 (mean shorelines and confidence interval polygons).
-
-This script is in progress and not functional as of 3/25/2024.
 """
 
 import numpy as np
@@ -17,6 +15,9 @@ import glob
 from math import degrees, atan2, radians
 
 def gb(x1, y1, x2, y2):
+    """
+    Gets compass bearing between two points
+    """
     bearing = degrees(atan2(y2 - y1, x2 - x1))
     return bearing
 
@@ -57,6 +58,11 @@ def single_transect(model_df,
                     crs_wgs84,
                     crs_utm,
                     switch_dir=False):
+    """
+    Gets utm and wgs84 coordinates from model outputs
+    Returns a df with added columns for the mean positions, upper conf interval, and lower conf interval
+    (eastings, northings) in UTM and WGS84
+    """
     try:
         means = model_df['forecast_mean_position']
         uppers = model_df['forecast_upper_conf']

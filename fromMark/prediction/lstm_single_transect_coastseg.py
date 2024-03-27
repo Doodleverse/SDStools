@@ -335,35 +335,35 @@ def run(csv_path,
     keras.backend.clear_session()
     sess.close()
 
-if __name__ == "__main__":
-    from argparse import ArgumentParser
-    parser = ArgumentParser()
-    parser.add_argument("--csv_path", type=str,required=True,help="path to transect csv")
-    parser.add_argument("--transect_id", type=str,required=True,help="transect id")
-    parser.add_argument("--site", type=str,required=True, help="site name")
-    parser.add_argument("--folder", type=str, required=True, help="path to projected folder")
-    parser.add_argument("--bootstrap", type=int, required=True, help="number of repeat trials")
-    parser.add_argument("--num_prediction",type=int, required=True, help="number of predictions")
-    parser.add_argument("--epochs",type=int, required=True, help="number of epochs to train")
-    parser.add_argument("--units",type=int, required=True, help="number of LSTM layers")
-    parser.add_argument("--batch_size",type=int, required=True, help="training batch size")
-    parser.add_argument("--lookback",type=int, required=True, help="look back value")
-    parser.add_argument("--split_percent",type=float, required=True, help="train/test split fraction, ex: 0.80 for 80/20 split")
-    parser.add_argument("--which_timedelta",type=str, required=True, help="resample method")
-    parser.add_argument("--timedelta",type=str, required=True, help="if custom for which_timedelta, the new timedelta")
-    args = parser.parse_args()
-    run(args.csv_path,
-        args.transect_id,
-        args.site,
-        args.folder,
-        bootstrap=args.bootstrap,
-        num_prediction=args.num_prediction,
-        epochs=args.epochs,
-        units=args.units,
-        batch_size=args.batch_size,
-        lookback=args.lookback,
-        split_percent=args.split_percent,
-        which_timedelta=args.which_timedelta,
-        timdelta=args.timedelta)   
+##if __name__ == "__main__":
+##    from argparse import ArgumentParser
+##    parser = ArgumentParser()
+##    parser.add_argument("--csv_path", type=str,required=True,help="path to transect csv")
+##    parser.add_argument("--transect_id", type=str,required=True,help="transect id")
+##    parser.add_argument("--site", type=str,required=True, help="site name")
+##    parser.add_argument("--folder", type=str, required=True, help="path to projected folder")
+##    parser.add_argument("--bootstrap", type=int, required=True, help="number of repeat trials")
+##    parser.add_argument("--num_prediction",type=int, required=True, help="number of predictions")
+##    parser.add_argument("--epochs",type=int, required=True, help="number of epochs to train")
+##    parser.add_argument("--units",type=int, required=True, help="number of LSTM layers")
+##    parser.add_argument("--batch_size",type=int, required=True, help="training batch size")
+##    parser.add_argument("--lookback",type=int, required=True, help="look back value")
+##    parser.add_argument("--split_percent",type=float, required=True, help="train/test split fraction, ex: 0.80 for 80/20 split")
+##    parser.add_argument("--which_timedelta",type=str, required=True, help="resample method")
+##    parser.add_argument("--timedelta",type=str, required=True, help="if custom for which_timedelta, the new timedelta")
+##    args = parser.parse_args()
+##    run(args.csv_path,
+##        args.transect_id,
+##        args.site,
+##        args.folder,
+##        bootstrap=args.bootstrap,
+##        num_prediction=args.num_prediction,
+##        epochs=args.epochs,
+##        units=args.units,
+##        batch_size=args.batch_size,
+##        lookback=args.lookback,
+##        split_percent=args.split_percent,
+##        which_timedelta=args.which_timedelta,
+##        timdelta=args.timedelta)   
 
    
