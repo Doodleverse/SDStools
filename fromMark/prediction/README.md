@@ -53,13 +53,13 @@ The script to use is lstm_parallel_coastseg.py.
 
 Try running this on your data with the default values for
 
-* bootstrap
-* num_prediction
-* num_epochs
-* units
-* batch_size
-* look_back
-* split_percent
+* bootstrap (re-training more than 30 times is overkill)
+* num_prediction (a note here: given a freq of 30D and a num_prediction of 30, you are projecting the model 30 months into the future)
+* num_epochs (this should just be a large integer, there is an early stopping callback when the validation loss is minimized)
+* units (units beyond 64 tend to overcomplicate the model and you get diminishing returns)
+* batch_size (making this too large can potentially inflate your validation loss and perhaps make a less-effective model)
+* look_back (keep in mind the record length, or number of timesteps, in your data--if you make this too large you will get size errors)
+* split_percent (the model needs training data and it also needs validation data, be wise about this)
 
 Make sure freq matches the time-spacing you used in SDSTools/fromMark/analysis/coastseg_time_and_space_analysis_matrix.py.
 
