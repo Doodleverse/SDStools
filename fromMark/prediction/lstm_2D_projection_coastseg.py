@@ -52,7 +52,6 @@ def lists_to_LineString(list1, list2):
     return line
 
 
-####NEED TO EDIT THIS FUNCTION
 def single_transect(model_df,
                     transect,
                     crs_wgs84,
@@ -407,5 +406,6 @@ def main(sitename,
                        prediction_times,
                        save_folder,
                        sitename,
-                       switch_dir=False)
+                       switch_dir=switch_dir)
+
 
