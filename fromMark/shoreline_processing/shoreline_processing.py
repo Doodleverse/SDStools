@@ -101,7 +101,7 @@ def smooth_lines(shorelines):
     """
     dirname = os.path.dirname(shorelines)
     dirname = os.path.dirname(dirname)
-    save_path = os.path.join(dirname,os.path.splitext(os.path.basename(shapefile))[0]+'_smooth.geojson')
+    save_path = os.path.join(dirname,os.path.splitext(os.path.basename(shorelines))[0]+'_smooth.geojson')
     lines = gpd.read_file(shorelines)
     new_lines = lines.copy()
     for i in range(len(lines)):
