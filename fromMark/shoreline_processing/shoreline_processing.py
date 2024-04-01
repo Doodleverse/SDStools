@@ -292,6 +292,24 @@ def add_year_as_field(shorelines):
     model_gdf.to_file(shorelines)
     return shorelines
 
+def filter_by_month_range(shorelines_path, min_month, max_month):
+    """
+    Filter extracted shorelines to specific month range (e.g., summer June, July, August)
+    inputs:
+    shorelines_path (str): path to the extracted shorelines
+    min_month (int): minumum month integer
+    max_month (int): maximum month integer
+    outputs:
+    shorelines_month_filter_path (str): path to the output file
+    """
+    model_gdf = gpd.read_file(shorelines_path)
+    shorelines_month_filter_path = os.path.splitext(shorelines_path)[0] + '_month_filter.geojson'
+    model_gdf_filter = model_gdf[model_gdf['date'].month >= 6 and model_gdf['date']<= 9]
+    model_gdf_filter.to_file(shorelines_month_filter_path)
+    return shorelines_month_filter_path
+
+    
+
 
 
     
