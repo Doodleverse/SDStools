@@ -11,6 +11,66 @@ from shapely import geometry
 import warnings
 warnings.filterwarnings("ignore")
 
+
+def wgs84_to_utm_file(geojson_file):
+    """
+    Converts wgs84 to UTM
+    inputs:
+    geojson_file (path): path to a geojson in wgs84
+    outputs:
+    geojson_file_utm (path): path to a geojson in utm
+    """
+
+    geojson_file_utm = os.path.splitext(geojson_file)[0]+'_utm.geojson'
+
+    gdf_wgs84 = gpd.read_file(geojson_file)
+    utm_crs = gdf_wgs84.estimate_utm_crs()
+
+    gdf_utm = gdf_wgs84.to_crs(utm_crs)
+    gdf_utm.to_file(geojson_file_utm)
+    return geojson_file_utm
+    
+def wgs84_to_utm_df(geo_df):
+    """
+    Converts wgs84 to UTM
+    inputs:
+    geo_df (geopandas dataframe): a geopandas dataframe in wgs84
+    outputs:
+    geo_df_utm (geopandas  dataframe): a geopandas dataframe in utm
+    """
+    utm_crs = geo_df.estimate_utm_crs()
+    gdf_utm = geo_df.to_crs(utm_crs)
+    return gdf_utm
+
+def utm_to_wgs84_file(geojson_file):
+    """
+    Converts utm to wgs84
+    inputs:
+    geojson_file (path): path to a geojson in utm
+    outputs:
+    geojson_file_wgs84 (path): path to a geojson in wgs84
+    """
+    geojson_file_wgs84 = os.path.splitext(geojson_file)[0]+'_wgs84.geojson'
+
+    gdf_utm = gpd.read_file(geojson_file)
+    wgs84_crs = 'epsg:4326'
+
+    gdf_wgs84 = gdf_wgs84.to_crs(wgs84_crs)
+    gdf_wgs84.to_file(geojson_file_wgs84)
+    return geojson_file_utm
+
+def utm_to_wgs84_df(geo_df):
+    """
+    Converts utm to wgs84
+    inputs:
+    geo_df (geopandas dataframe): a geopandas dataframe in utm
+    outputs:
+    geo_df_wgs84 (geopandas  dataframe): a geopandas dataframe in wgs84
+    """
+    wgs84_crs = 'epsg:4326'
+    gdf_wgs84 = geo_df.to_crs(wgs84_crs)
+    return gdf_wgs84
+    
 def arr_to_LineString(coords):
     """
     Makes a line feature from a list of xy tuples
@@ -92,12 +152,13 @@ def chaikins_corner_cutting(coords, refinements=5):
 def smooth_lines(shorelines):
     """
     Smooths out shorelines with Chaikin's method
+    Shorelines need to be in UTM
     saves output with '_smooth' appended to original filename in same directory
 
     inputs:
-    shorelines (str): path to extracted shorelines
+    shorelines (str): path to extracted shorelines in UTM
     outputs:
-    save_path (str): path of output file
+    save_path (str): path of output file in UTM
     """
     dirname = os.path.dirname(shorelines)
     dirname = os.path.dirname(dirname)
@@ -106,7 +167,7 @@ def smooth_lines(shorelines):
     new_lines = lines.copy()
     for i in range(len(lines)):
         line = lines.iloc[i]
-        coords = np.array(line.geometry)
+        coords = LineString_to_array(line.geometry)
         refined = chaikins_corner_cutting(coords)
         refined_geom = arr_to_LineString(refined)
         new_lines['geometry'][i] = refined_geom
