@@ -1,5 +1,4 @@
 import geopandas as gpd
-import datetime
 import os
 import glob
 
@@ -57,7 +56,7 @@ def geojson_to_shapefile(my_geojson, out_dir=None):
         new_name = os.path.join(out_dir, name_no_ext+'.shp')
         
     myshpfile = gpd.read_file(my_geojson)
-    myshpfile['date'] = myshpfile['date'].datetime.strftime("%Y-%m-%d")
+    myshpfile['date'] = myshpfile['date'].astype('str')
     myshpfile.to_file(new_name)
     return new_name
 
