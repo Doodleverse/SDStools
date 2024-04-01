@@ -167,7 +167,7 @@ def smooth_lines(shorelines):
     new_lines = lines.copy()
     for i in range(len(lines)):
         line = lines.iloc[i]
-        coords = LineString_to_array(line.geometry)
+        coords = LineString_to_arr(line.geometry)
         refined = chaikins_corner_cutting(coords)
         refined_geom = arr_to_LineString(refined)
         new_lines['geometry'][i] = refined_geom
