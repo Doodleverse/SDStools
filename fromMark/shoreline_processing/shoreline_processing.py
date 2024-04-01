@@ -289,7 +289,8 @@ def add_year_as_field(shorelines):
         year = line_entry['date'].year
         years[i] = year
     model_gdf['year'] = years
-    model_gdf.to_file(shorelines)               
+    model_gdf.to_file(shorelines)
+    return shorelines
 
 
 
