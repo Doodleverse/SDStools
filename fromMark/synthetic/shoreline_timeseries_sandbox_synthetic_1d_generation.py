@@ -9,7 +9,6 @@ import matplotlib.dates as mdates
 import datetime
 import random
 import pandas as pd
-import shoreline_timeseries_analysis_single as stsa
 import os
 
 def time_array_to_years(datetimes):
