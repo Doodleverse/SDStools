@@ -1,4 +1,5 @@
 import geopandas as gpd
+import datetime
 import os
 import glob
 
@@ -22,6 +23,7 @@ def shapefile_to_geojson(my_shape_file, out_dir=None):
         
     myshpfile = gpd.read_file(my_shape_file)
     myshpfile.to_file(new_name, driver='GeoJSON')
+    return new_name
 
 def batch_shapefile_to_geojson(in_dir, out_dir):
     """
@@ -55,7 +57,9 @@ def geojson_to_shapefile(my_geojson, out_dir=None):
         new_name = os.path.join(out_dir, name_no_ext+'.shp')
         
     myshpfile = gpd.read_file(my_geojson)
+    myshpfile['date'] = myshpfile['date'].datetime.strftime("%Y-%m-%d")
     myshpfile.to_file(new_name)
+    return new_name
 
 def batch_geojson_to_shapefile(in_dir, out_dir):
     """
