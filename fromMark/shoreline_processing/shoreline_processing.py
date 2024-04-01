@@ -55,9 +55,9 @@ def utm_to_wgs84_file(geojson_file):
     gdf_utm = gpd.read_file(geojson_file)
     wgs84_crs = 'epsg:4326'
 
-    gdf_wgs84 = gdf_wgs84.to_crs(wgs84_crs)
+    gdf_wgs84 = gdf_utm.to_crs(wgs84_crs)
     gdf_wgs84.to_file(geojson_file_wgs84)
-    return geojson_file_utm
+    return geojson_file_wgs84
 
 def utm_to_wgs84_df(geo_df):
     """
@@ -149,6 +149,22 @@ def chaikins_corner_cutting(coords, refinements=5):
         i=i+1
     return coords
 
+def simplify_lines(shorelines_path, tolerance=1):
+    """
+    Uses shapely simplify function to smooth out the extracted shorelines
+    inputs:
+    shapefile: path to extracted shorelines
+    tolerance (optional): simplification tolerance
+    outputs:
+    save_path: path to simplified shorelines
+    """
+
+    save_path = os.path.splitext(shorelines_path)[0]+'_simplify'+str(tolerance)+'.geojson'
+    lines = gpd.read_file(shorelines_path)
+    lines['geometry'] = lines['geometry'].simplify(tolerance)
+    lines.to_file(save_path)
+    return save_path
+
 def smooth_lines(shorelines):
     """
     Smooths out shorelines with Chaikin's method
@@ -161,7 +177,6 @@ def smooth_lines(shorelines):
     save_path (str): path of output file in UTM
     """
     dirname = os.path.dirname(shorelines)
-    dirname = os.path.dirname(dirname)
     save_path = os.path.join(dirname,os.path.splitext(os.path.basename(shorelines))[0]+'_smooth.geojson')
     lines = gpd.read_file(shorelines)
     new_lines = lines.copy()
@@ -195,30 +210,10 @@ def ref_shoreline_filter(reference_shoreline, model_shorelines, distance_thresho
     for i in range(len(model_gdf)):
         line_entry = model_gdf.iloc[i]
         line = line_entry.geometry
-        bool_val = buffer.intersects(line).values[0]
+        bool_val = buffer.contains(line).values[0]
         buffer_vals[i] = bool_val
     model_gdf['buffer_vals'] = buffer_vals
     model_gdf_filter = model_gdf[model_gdf['buffer_vals']]
-    
-    ##Now get rid of points that lie outside buffer but preserve the rest of the shoreline
-    new_lines = [None]*len(model_gdf)
-    for i in range(len(model_gdf_filter)):
-        line_entry = model_gdf_filter.iloc[i]
-        line = line_entry.geometry
-        line_arr = LineString_to_arr(line)
-        bool_vals = [None]*len(line_arr)
-        j = 0
-        for point in line_arr:
-            point = geometry.Point(point)
-            bool_val = buffer.contains(point)[0]
-            bool_vals[j] = bool_val
-            j=j+1
-        new_line_arr = line_arr[bool_vals]
-        new_line_LineString = arr_to_LineString(new_line_arr)
-        new_lines[i] = new_line_LineString
-
-    ##Assign the new geometries, save the output
-    model_gdf_filter['geometry'] = new_lines
     model_gdf_filter.to_file(save_path)
     return save_path
 
@@ -304,11 +299,9 @@ def filter_by_month_range(shorelines_path, min_month, max_month):
     """
     model_gdf = gpd.read_file(shorelines_path)
     shorelines_month_filter_path = os.path.splitext(shorelines_path)[0] + '_month_filter.geojson'
-    model_gdf_filter = model_gdf[model_gdf['date'].month >= 6 and model_gdf['date']<= 9]
+    model_gdf_filter = model_gdf[model_gdf['date'].dt.month.isin(range(min_month, max_month+1))]
     model_gdf_filter.to_file(shorelines_month_filter_path)
     return shorelines_month_filter_path
-
-    
 
 
 
