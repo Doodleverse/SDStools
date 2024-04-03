@@ -1,8 +1,14 @@
 # SDStools/fromMark/prediction
 
+Some tools for building data-driven predictive models from satellite shoreline data.
+
 Requirements: python>=3.7, tensorflow<=1.14.0, pandas, matplotlib, scikit-learn, numpy, shapely, geopandas, statsmodels
 
-Some tools for building data-driven predictive models from satellite shoreline data.
+Can try making this conda environment with the yml file.
+	
+	cd path/to/SDStools/fromMark/prediction
+	
+	conda env create --file shoreline_prediction.yml
 
 # Before you use
 
