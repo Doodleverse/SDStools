@@ -28,13 +28,32 @@ def move_to_sniffer(num_images,
             image_paths[k] = imgs_shuffled[i]
             k=k+1
 
-    ##Move images to sniffer directory
+    ##Move images to Sniffer directory
     image_paths = [ ele for ele in image_paths if ele is not None ]
+    sniffer_paths = [None]*len(image_paths)
+    seg_jpg_paths = [None]*len(image_paths)
+    seg_npz_paths = [None]*len(image_paths)
+    i=0
     for image in image_paths:
         name = os.path.basename(image)
         input_path = image
         output_path = os.path.join(sniffer_image_dir, name)
+        seg_jpg_path = os.path.dirname(os.path.dirname(input_path))+name+'pred_seg.jpg'
+        seg_jpg_paths[i] = seg_jpg_path
+        seg_npz_path = os.path.dirname(os.path.dirname(input_path))+name+'_res.npz'
+        seg_npz_paths[i] = seg_npz_path
+        sniffer_paths[i] = output_path
         shutil.copyfile(input_path, output_path)
+
+    ##Make a csv with all of the paths
+    output_df = pd.DataFrame({'detection_paths':image_paths,
+                              'sniffer_paths':sniffer_paths,
+                              'seg_jpg_paths':seg_jpg_paths,
+                              'seg_npz_paths':seg_npz_paths,
+                              }
+                             )
+    output_csv = os.path.join(sniffer_image_dir, 'image_list.csv')
+    output_df.to_csv(output_csv)
 
 
 
