@@ -5,8 +5,9 @@ import geopandas as gpd
 import shapely
 
 
-def extend_transects_seaward(in_transects_geojson,
-                             extension_distance):
+def extend_transects(in_transects_geojson,
+                     extension_distance,
+                     direction='seaward'):
     """
     Extends transects seaward by a specified distance in meters
     inputs:
@@ -38,14 +39,32 @@ def extend_transects_seaward(in_transects_geojson,
         transect = in_transects_utm.iloc[i]
         first = transect.geometry.coords[0]
         last = transect.geometry.coords[1]
-
         ##get bearing and extend end of transect
         angle = np.arctan2(last[1] - first[1], last[0] - first[0])
-        new_end_x = last[0]+extension_distance*np.cos(angle)
-        new_end_y = last[1]+extension_distance*np.sin(angle)
-
-        newLine = shapely.LineString([first, (new_end_x, new_end_y)])
-        new_lines[i] = newLine
+        
+        if direction == 'seaward':
+            ##add length to end of transects
+            new_end_x = last[0]+extension_distance*np.cos(angle)
+            new_end_y = last[1]+extension_distance*np.sin(angle)
+            newLine = shapely.LineString([first, (new_end_x, new_end_y)])
+            new_lines[i] = newLine
+        elif direction == 'both':
+            ##add length to start and end of transects
+            angle = np.arctan2(last[1] - first[1], last[0] - first[0])
+            new_end_x = last[0]+extension_distance*np.cos(angle)
+            new_end_y = last[1]+extension_distance*np.sin(angle)
+            new_start_x = first[0]-extension_distance*np.cos(angle)
+            new_start_y = first[1]-extension_distance*np.sin(angle)
+            newLine = shapely.LineString([(new_start_x, new_start_y), (new_end_x, new_end_y)])
+            new_lines[i] = newLine
+        else:
+            ##add length to start of transect
+            ##get bearing and extend end of transect
+            angle = np.arctan2(last[1] - first[1], last[0] - first[0])
+            new_start_x = first[0]-extension_distance*np.cos(angle)
+            new_start_y = first[1]-extension_distance*np.sin(angle)
+            newLine = shapely.LineString([(new_start_x, new_start_y), last])
+            new_lines[i] = newLine            
     
     out_transects_utm['geometry'] = new_lines
 
