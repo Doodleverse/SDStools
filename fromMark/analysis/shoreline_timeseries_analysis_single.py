@@ -371,7 +371,7 @@ def main_df(df,
             output_folder,
             name,
             which_timedelta,
-            median_filter_window,
+            median_filter_window=3,
             timedelta=None):
     """
     Timeseries analysis for satellite shoreline data
@@ -497,8 +497,8 @@ def main_df(df,
 def main(csv_path,
          output_folder,
          name,
-         median_filter_window,
          which_timedelta,
+         median_filter_window=3,
          timedelta=None):
     """
     Timeseries analysis for satellite shoreline data

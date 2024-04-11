@@ -204,7 +204,7 @@ def run(csv_path,
         batch_size=32,
         lookback=4,
         split_percent=0.80,
-        median_filter_window,
+        median_filter_window=3,
         which_timedelta='maximum',
         timedelta=None):
     """
@@ -396,6 +396,7 @@ def run(csv_path,
 ##    parser.add_argument("--batch_size",type=int, required=True, help="training batch size")
 ##    parser.add_argument("--lookback",type=int, required=True, help="look back value")
 ##    parser.add_argument("--split_percent",type=float, required=True, help="train/test split fraction, ex: 0.80 for 80/20 split")
+##    parser.add_argument("--median_filter_window",type=int, required=True, help="kernel length for median filter, must be odd integer")
 ##    parser.add_argument("--which_timedelta",type=str, required=True, help="resample method")
 ##    parser.add_argument("--timedelta",type=str, required=True, help="if custom for which_timedelta, the new timedelta")
 ##    args = parser.parse_args()
@@ -410,6 +411,7 @@ def run(csv_path,
 ##        batch_size=args.batch_size,
 ##        lookback=args.lookback,
 ##        split_percent=args.split_percent,
+##        median_filter_window=median_filter_window,
 ##        which_timedelta=args.which_timedelta,
 ##        timdelta=args.timedelta)   
 

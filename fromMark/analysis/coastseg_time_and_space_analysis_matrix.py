@@ -14,10 +14,10 @@ import shoreline_timeseries_analysis_single_spatial as stasp
 def main(transect_timeseries_path,
          config_gdf_path,
          output_folder,
-         median_filter_window,
          transect_spacing,
          which_timedelta,
          which_spacedelta,
+         median_filter_window=3,
          timedelta=None,
          spacedelta=None):
     """
@@ -72,8 +72,8 @@ def main(transect_timeseries_path,
         timeseries_analysis_result, output_df, new_timedelta = stas.main_df(data,
                                                                             time_dir,
                                                                             transect_id,
-                                                                            median_filter_window,
                                                                             which_timedelta,
+                                                                            median_filter_window=3,
                                                                             timedelta=timedelta)
         output_df = output_df.set_index(['date'])
         output_df = output_df.rename(columns = {'position':transect_id})
