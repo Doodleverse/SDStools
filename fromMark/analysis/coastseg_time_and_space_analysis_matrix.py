@@ -14,6 +14,7 @@ import shoreline_timeseries_analysis_single_spatial as stasp
 def main(transect_timeseries_path,
          config_gdf_path,
          output_folder,
+         median_filter_window,
          transect_spacing,
          which_timedelta,
          which_spacedelta,
@@ -26,6 +27,7 @@ def main(transect_timeseries_path,
     transect_timeseries_path (str): path to the transect_time_series.csv
     config_gdf_path (str): path to the config_gdf.geojson
     output_folder (str): path to save outputs to
+    median_filter_window (odd int): kernel size for median filter on timeseries
     which_timedelta (str): 'minimum' 'average' or 'maximum' or 'custom', this is what the timeseries is resampled at
     which_spacedelta (str): 'minimum' 'average' or 'maximum' or 'custom', this is the matrix is sampled at in the longshore direction
     timedelta (str, optional): the custom time spacing (e.g., '30D' is 30 days)
@@ -70,6 +72,7 @@ def main(transect_timeseries_path,
         timeseries_analysis_result, output_df, new_timedelta = stas.main_df(data,
                                                                             time_dir,
                                                                             transect_id,
+                                                                            median_filter_window,
                                                                             which_timedelta,
                                                                             timedelta=timedelta)
         output_df = output_df.set_index(['date'])

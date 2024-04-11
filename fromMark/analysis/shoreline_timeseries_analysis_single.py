@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import datetime
 import random
-from scipy import stats
+from scipy import stats, signal
 import pandas as pd
 from statsmodels.tsa.stattools import adfuller
 import os
@@ -44,6 +44,20 @@ def adf_test(timeseries):
         stationary_bool = False
     return stationary_bool
 
+def median_filter(df, window):
+    """
+    Applies a median filter with specified window length
+    inputs:
+    df (pandas DataFrame): two columns, dates and cross-shore positions
+    window (odd int): number of timesteps for filter kernel
+    returns
+    df (pandas DataFrame): contains trace with median filter applied
+    """
+    vals = df['position']
+    vals_median_fitler = scipy.signal.medfilt(vals, window)
+    df['position'] = vals_median_filter
+    return df
+    
 def get_linear_trend(df):
     """
     LLS on single transect timeseries
@@ -158,6 +172,18 @@ def fill_nans(df):
     new_df = df.interpolate(method='linear', limit=None, limit_direction='both')
     return new_df
 
+def moving_average(df, window)
+    """
+    Applying a moving average to a timeseries of specified window length
+    inputs:
+    df (pandas DataFrame): index is datetimes, only column is 'position'
+    window (timedelta str): the window length for the moving average
+    returns:
+    df (pandas DataFrame): the timeseries with moving average applied
+    """
+    new_df = df.rolling(window).mean()
+    return new_df
+
 def plot_autocorrelation(output_folder,
                          name,
                          df):
@@ -217,6 +243,7 @@ def make_plots(output_folder,
                df,
                df_resampled,
                df_no_nans,
+               df_med_filt,
                df_de_meaned,
                df_de_trend_bool=False,
                df_de_trend=None,
@@ -257,6 +284,15 @@ def make_plots(output_folder,
         plt.xticks([],[])
         plt.minorticks_on()
         plt.legend()
+        ##Median Filter
+        plt.subplot(4,1,3)
+        plt.plot(df_med_filt.index, df_med_filt['position'], '--o', color='k', label='Median Filter')
+        plt.xlim(min(df_med_filt.index), max(df_med_filt.index))
+        plt.ylim(np.nanmin(df_med_filt['position']), np.nanmax(df_med_filt['position']))
+        plt.ylabel('Cross-Shore Position (m)')
+        plt.xticks([],[])
+        plt.minorticks_on()
+        plt.legend()        
         ##De-meaned
         plt.subplot(4,1,4)
         plt.plot(df_de_meaned.index, df_de_meaned['position'], '--o', color='k', label='De-Meaned')
@@ -273,7 +309,7 @@ def make_plots(output_folder,
     else:
         plt.rcParams["figure.figsize"] = (16,16)
         ##Raw 
-        plt.subplot(5,1,1)
+        plt.subplot(6,1,1)
         plt.suptitle(name)
         plt.plot(df.index, df['position'], '--o', color='k', label='Raw')
         plt.xlim(min(df.index), max(df.index))
@@ -282,7 +318,7 @@ def make_plots(output_folder,
         plt.xticks([],[])
         plt.legend()
         ##Resampled
-        plt.subplot(5,1,2)
+        plt.subplot(6,1,2)
         plt.plot(df_resampled.index, df_resampled['position'], '--o', color='k', label='Resampled')
         plt.xlim(min(df_resampled.index), max(df_resampled.index))
         plt.ylim(np.nanmin(df_resampled['position']), np.nanmax(df_resampled['position']))
@@ -291,7 +327,7 @@ def make_plots(output_folder,
         plt.minorticks_on()
         plt.legend()
         ##Interpolated
-        plt.subplot(5,1,3)
+        plt.subplot(6,1,3)
         plt.plot(df_no_nans.index, df_no_nans['position'], '--o', color='k', label='Interpolated')
         plt.plot(df_trend.index, df_trend['position'], '--', color='blue', label='Linear Trend')
         plt.xlim(min(df_no_nans.index), max(df_no_nans.index))
@@ -300,8 +336,17 @@ def make_plots(output_folder,
         plt.xticks([],[])
         plt.minorticks_on()
         plt.legend()
+        ##Median Filter
+        plt.subplot(6,1,4)
+        plt.plot(df_med_filt.index, df_med_filt['position'], '--o', color='k', label='Median Filter')
+        plt.xlim(min(df_med_filt.index), max(df_med_filt.index))
+        plt.ylim(np.nanmin(df_med_filt['position']), np.nanmax(df_med_filt['position']))
+        plt.ylabel('Cross-Shore Position (m)')
+        plt.xticks([],[])
+        plt.minorticks_on()
+        plt.legend()        
         ##De-trended
-        plt.subplot(5,1,4)
+        plt.subplot(6,1,5)
         plt.plot(df_de_trend.index, df_de_trend['position'], '--o', color='k', label='De-Trended')
         plt.xlim(min(df_de_trend.index), max(df_de_trend.index))
         plt.ylim(np.nanmin(df_de_trend['position']), np.nanmax(df_de_trend['position']))
@@ -310,7 +355,7 @@ def make_plots(output_folder,
         plt.minorticks_on()
         plt.legend()
         ##De-meaned
-        plt.subplot(5,1,5)
+        plt.subplot(6,1,6)
         plt.plot(df_de_meaned.index, df_de_meaned['position'], '--o', color='k', label='De-Meaned')
         plt.xlim(min(df_de_meaned.index), max(df_de_meaned.index))
         plt.ylim(np.nanmin(df_de_meaned['position']), np.nanmax(df_de_meaned['position']))
@@ -326,6 +371,7 @@ def main_df(df,
             output_folder,
             name,
             which_timedelta,
+            median_filter_window,
             timedelta=None):
     """
     Timeseries analysis for satellite shoreline data
@@ -352,13 +398,17 @@ def main_df(df,
         new_timedelta = compute_time_delta(df, which_timedelta)
     else:
         new_timedelta=timedelta
-
+    
     ##Step 3: Resample timeseries to the maximum timedelta
     df_resampled = resample_timeseries(df, new_timedelta)
 
     ##Step 4: Fill NaNs
     df_no_nans = fill_nans(df_resampled)
     snr_no_nans = np.abs(np.mean(df_no_nans['position']))/np.std(df_no_nans['position'])
+
+    ##Step 5: Median Filter
+    df_med_filt = median_filter(df_no_nans, median_filter_window)
+    snr_median_filter = np.abs(np.mean(df_med_filt['position']))/np.std(df_med_filt['position'])
     
     ##Step 5: Check for stationarity with ADF test
     stationary_bool = adf_test(df_no_nans['position'])
@@ -366,7 +416,7 @@ def main_df(df,
     ##Step 6a: If timeseries stationary, de-mean, compute autocorrelation and approximate entropy
     ##Then make plots
     if stationary_bool == True:
-        df_de_meaned = de_mean_timeseries(df_no_nans)
+        df_de_meaned = de_mean_timeseries(df_med_filt)
         autocorr_max, lag_max = plot_autocorrelation(output_folder,
                                                      name,
                                                      df_de_meaned)
@@ -378,6 +428,7 @@ def main_df(df,
                    df,
                    df_resampled,
                    df_no_nans,
+                   df_med_filt,
                    df_de_meaned,
                    df_de_trend_bool=False)
         slope = np.nan
@@ -389,8 +440,8 @@ def main_df(df,
     ##Step 6b: If timeseries non-stationary, compute trend, de-trend, de-mean, compute autocorrelation and approximate entropy
     ##Then make plots
     else:
-        trend_result, x = get_linear_trend(df_no_nans)
-        df_de_trend, df_trend = de_trend_timeseries(df_no_nans, trend_result, x)
+        trend_result, x = get_linear_trend(df_med_filt)
+        df_de_trend, df_trend = de_trend_timeseries(df_med_filt, trend_result, x)
         
         ##Step 5: De-mean the timeseries
         df_de_meaned = de_mean_timeseries(df_de_trend)
@@ -405,6 +456,7 @@ def main_df(df,
                    df,
                    df_resampled,
                    df_no_nans,
+                   df_med_filt,
                    df_de_meaned,
                    df_de_trend_bool=True,
                    df_de_trend=df_de_trend,
@@ -426,6 +478,7 @@ def main_df(df,
                                   'lag_max':str(lag_max*new_timedelta),
                                   'new_timedelta':str(new_timedelta),
                                   'snr_no_nans':snr_no_nans,
+                                  'snr_median_filter':snr_median_filter,
                                   'approx_entropy':approximate_entropy}
 
     ##Save this dictionary to a csv
@@ -444,6 +497,7 @@ def main_df(df,
 def main(csv_path,
          output_folder,
          name,
+         median_filter_window,
          which_timedelta,
          timedelta=None):
     """
@@ -464,8 +518,7 @@ def main(csv_path,
     timeseries_analysis_result (dict): results of this cookbook
     """
     ##Step 1: Load in data
-    df = pd.read_csv(csv_path)
-    df = get_shoreline_data(csv_path)
+    df = get_shoreline_data_df(df)
     
     ##Step 2: Compute average and max time delta
     if which_timedelta != 'custom':
@@ -479,6 +532,10 @@ def main(csv_path,
     ##Step 4: Fill NaNs
     df_no_nans = fill_nans(df_resampled)
     snr_no_nans = np.abs(np.mean(df_no_nans['position']))/np.std(df_no_nans['position'])
+
+    ##Step 5: Median Filter
+    df_med_filt = median_filter(df_no_nans, median_filter_window)
+    snr_median_filter = np.abs(np.mean(df_med_filt['position']))/np.std(df_med_filt['position'])
     
     ##Step 5: Check for stationarity with ADF test
     stationary_bool = adf_test(df_no_nans['position'])
@@ -486,7 +543,7 @@ def main(csv_path,
     ##Step 6a: If timeseries stationary, de-mean, compute autocorrelation and approximate entropy
     ##Then make plots
     if stationary_bool == True:
-        df_de_meaned = de_mean_timeseries(df_no_nans)
+        df_de_meaned = de_mean_timeseries(df_med_filt)
         autocorr_max, lag_max = plot_autocorrelation(output_folder,
                                                      name,
                                                      df_de_meaned)
@@ -498,6 +555,7 @@ def main(csv_path,
                    df,
                    df_resampled,
                    df_no_nans,
+                   df_med_filt,
                    df_de_meaned,
                    df_de_trend_bool=False)
         slope = np.nan
@@ -509,8 +567,8 @@ def main(csv_path,
     ##Step 6b: If timeseries non-stationary, compute trend, de-trend, de-mean, compute autocorrelation and approximate entropy
     ##Then make plots
     else:
-        trend_result, x = get_linear_trend(df_no_nans)
-        df_de_trend, df_trend = de_trend_timeseries(df_no_nans, trend_result, x)
+        trend_result, x = get_linear_trend(df_med_filt)
+        df_de_trend, df_trend = de_trend_timeseries(df_med_filt, trend_result, x)
         
         ##Step 5: De-mean the timeseries
         df_de_meaned = de_mean_timeseries(df_de_trend)
@@ -525,6 +583,7 @@ def main(csv_path,
                    df,
                    df_resampled,
                    df_no_nans,
+                   df_med_filt,
                    df_de_meaned,
                    df_de_trend_bool=True,
                    df_de_trend=df_de_trend,
@@ -546,8 +605,10 @@ def main(csv_path,
                                   'lag_max':str(lag_max*new_timedelta),
                                   'new_timedelta':str(new_timedelta),
                                   'snr_no_nans':snr_no_nans,
+                                  'snr_median_filter':snr_median_filter,
                                   'approx_entropy':approximate_entropy}
 
+    ##Save this dictionary to a csv
     result = os.path.join(output_folder, name+'tsa_result.csv')
     with open(result,'w') as f:
         w = csv.writer(f)
@@ -556,7 +617,8 @@ def main(csv_path,
 
     output_df = pd.DataFrame({'date':df_no_nans.index,
                               'position':df_no_nans['position']})
-    output_df.to_csv(output_folder, name+'_resampled.csv')
+    output_path = os.path.join(output_folder, name+'_resampled.csv')
+    output_df.to_csv(output_path)
     return timeseries_analysis_result
 
 
