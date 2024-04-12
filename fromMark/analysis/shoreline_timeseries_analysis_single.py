@@ -212,7 +212,11 @@ def plot_autocorrelation(output_folder,
     autocorr = np.abs(autocorr)
     idx = autocorr.argmax()
     autocorr_max = np.max(autocorr)
+    autocorr_max2 = sorted(autocorr, reverse=True)[1]
+    idx2, = np.where(autocorr==autocorr_max2)
+    idx2 = idx2[0]
     lag_max = lags[idx]
+    lag_max2 = lags[idx2]
     
     # plotting the Curve
     x.plot()
@@ -220,7 +224,7 @@ def plot_autocorrelation(output_folder,
     # Display
     plt.savefig(fig_save, dpi=300)
     plt.close()
-    return autocorr_max, lag_max, autocorr, lags
+    return autocorr_max, lag_max, autocorr_max2, lag_max2, autocorr, lags
 
 def compute_approximate_entropy(U, m, r):
     """Compute Aproximate entropy, from https://en.wikipedia.org/wiki/Approximate_entropy
@@ -418,9 +422,9 @@ def main_df(df,
     ##Then make plots
     if stationary_bool == True:
         df_de_meaned = de_mean_timeseries(df_med_filt)
-        autocorr_max, lag_max = plot_autocorrelation(output_folder,
-                                                     name,
-                                                     df_de_meaned)
+        autocorr_max, lag_max, autocorr_max2, lag_max2, autocorr, lags = plot_autocorrelation(output_folder,
+                                                                                              name,
+                                                                                              df_de_meaned)
         approximate_entropy = compute_approximate_entropy(df_de_meaned['position'],
                                                           2,
                                                           np.std(df_de_meaned['position']))
@@ -446,9 +450,9 @@ def main_df(df,
         
         ##Step 5: De-mean the timeseries
         df_de_meaned = de_mean_timeseries(df_de_trend)
-        autocorr_max, lag_max = plot_autocorrelation(output_folder,
-                                                     name,
-                                                     df_de_meaned)
+        autocorr_max, lag_max, autocorr_max2, lag_max2, autocorr, lags = plot_autocorrelation(output_folder,
+                                                                                              name,
+                                                                                              df_de_meaned)
         approximate_entropy = compute_approximate_entropy(df_de_meaned['position'],
                                                           2,
                                                           np.std(df_de_meaned['position']))
@@ -467,7 +471,8 @@ def main_df(df,
         stderr = trend_result.stderr
         intercept_stderr = trend_result.intercept_stderr
         r_sq = trend_result.rvalue**2
-
+        
+    new_timedelta = pd.Timedelta(new_timedelta)
     ##Put results into dictionary
     timeseries_analysis_result = {'stationary_bool':stationary_bool,
                                   'computed_trend':slope,
@@ -477,6 +482,8 @@ def main_df(df,
                                   'r_sq':r_sq,
                                   'autocorr_max':autocorr_max,
                                   'lag_max':str(lag_max*new_timedelta),
+                                  'autocorr_max2':autocorr_max2,
+                                  'lag_max2':str(lag_max2*new_timedelta),
                                   'new_timedelta':str(new_timedelta),
                                   'snr_no_nans':snr_no_nans,
                                   'snr_median_filter':snr_median_filter,
@@ -488,7 +495,12 @@ def main_df(df,
         w = csv.writer(f)
         w.writerow(timeseries_analysis_result.keys())
         w.writerow(timeseries_analysis_result.values())
-
+    output_path_autocorr = os.path.join(output_folder, name+'_autocorr.csv')
+    output_df_autocorr = pd.DataFrame({'lag':lags,
+                                       'autocorrelation':autocorr
+                                       }
+                                      )
+    output_df_autocorr.to_csv(output_path_autocorr)
     output_df = pd.DataFrame({'date':df_no_nans.index,
                               'position':df_no_nans['position']})
     output_path = os.path.join(output_folder, name+'_resampled.csv')
@@ -519,6 +531,7 @@ def main(csv_path,
     timeseries_analysis_result (dict): results of this cookbook
     """
     ##Step 1: Load in data
+    df = pd.read_csv(csv_path)
     df = get_shoreline_data_df(df)
     
     ##Step 2: Compute average and max time delta
@@ -545,9 +558,9 @@ def main(csv_path,
     ##Then make plots
     if stationary_bool == True:
         df_de_meaned = de_mean_timeseries(df_med_filt)
-        autocorr_max, lag_max, autocorr, lags = plot_autocorrelation(output_folder,
-                                                                     name,
-                                                                     df_de_meaned)
+        autocorr_max, lag_max, autocorr_max2, lag_max2, autocorr, lags = plot_autocorrelation(output_folder,
+                                                                                              name,
+                                                                                              df_de_meaned)
         approximate_entropy = compute_approximate_entropy(df_de_meaned['position'],
                                                           2,
                                                           np.std(df_de_meaned['position']))
@@ -573,9 +586,9 @@ def main(csv_path,
         
         ##Step 5: De-mean the timeseries
         df_de_meaned = de_mean_timeseries(df_de_trend)
-        autocorr_max, lag_max, autocorr, lags = plot_autocorrelation(output_folder,
-                                                                     name,
-                                                                     df_de_meaned)
+        autocorr_max, lag_max, autocorr_max2, lag_max2, autocorr, lags = plot_autocorrelation(output_folder,
+                                                                                              name,
+                                                                                              df_de_meaned)
         approximate_entropy = compute_approximate_entropy(df_de_meaned['position'],
                                                           2,
                                                           np.std(df_de_meaned['position']))
@@ -595,6 +608,7 @@ def main(csv_path,
         intercept_stderr = trend_result.intercept_stderr
         r_sq = trend_result.rvalue**2
 
+    new_timedelta = pd.Timedelta(new_timedelta)
     ##Put results into dictionary
     timeseries_analysis_result = {'stationary_bool':stationary_bool,
                                   'computed_trend':slope,
@@ -604,6 +618,8 @@ def main(csv_path,
                                   'r_sq':r_sq,
                                   'autocorr_max':autocorr_max,
                                   'lag_max':str(lag_max*new_timedelta),
+                                  'autocorr_max2':autocorr_max2,
+                                  'lag_max2':str(lag_max2*new_timedelta),
                                   'new_timedelta':str(new_timedelta),
                                   'snr_no_nans':snr_no_nans,
                                   'snr_median_filter':snr_median_filter,
@@ -615,7 +631,7 @@ def main(csv_path,
         w = csv.writer(f)
         w.writerow(timeseries_analysis_result.keys())
         w.writerow(timeseries_analysis_result.values())
-    output_path_autocorr = os.paht.join(output_folder, name+'_autocorr.csv')
+    output_path_autocorr = os.path.join(output_folder, name+'_autocorr.csv')
     output_df_autocorr = pd.DataFrame({'lag':lags,
                                        'autocorrelation':autocorr
                                        }
