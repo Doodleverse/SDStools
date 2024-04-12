@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import datetime
 import random
+import scipy
 from scipy import stats, signal
 import pandas as pd
 from statsmodels.tsa.stattools import adfuller
@@ -54,7 +55,7 @@ def median_filter(df, window):
     df (pandas DataFrame): contains trace with median filter applied
     """
     vals = df['position']
-    vals_median_fitler = scipy.signal.medfilt(vals, window)
+    vals_median_filter = scipy.signal.medfilt(vals, window)
     df['position'] = vals_median_filter
     return df
     
@@ -172,7 +173,7 @@ def fill_nans(df):
     new_df = df.interpolate(method='linear', limit=None, limit_direction='both')
     return new_df
 
-def moving_average(df, window)
+def moving_average(df, window):
     """
     Applying a moving average to a timeseries of specified window length
     inputs:

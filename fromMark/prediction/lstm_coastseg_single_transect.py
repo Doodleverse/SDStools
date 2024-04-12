@@ -49,8 +49,12 @@ def get_shoreline_data(transect_timeseries_path,
     """
     ##importing data
     df = pd.read_csv(transect_timeseries_path)
-    new_df = pd.DataFrame({'date':pd.to_datetime(df['dates'], format='%Y-%m-%d %H:%M:%S+00:00'),
-                           'position':df[transect_id]})
+    try:
+        new_df = pd.DataFrame({'date':pd.to_datetime(df['dates'], format='%Y-%m-%d %H:%M:%S+00:00'),
+                               'position':df[transect_id]})
+    except:
+        new_df = pd.DataFrame({'date':pd.to_datetime(df['dates'], format='%m/%d/%Y'),
+                       'position':df[transect_id]})
 
     analysis_result, new_df, timedelta = stas.main_df(new_df,
                                                       folder,
@@ -188,6 +192,7 @@ def plot_history(history):
     """
     plt.plot(history.history['loss'], color='b')
     plt.plot(history.history['val_loss'], color='r')
+    plt.yscale('log')
     plt.minorticks_on()
     plt.ylabel('Mean Absolute Error (m)')
     plt.xlabel('Epoch')
@@ -203,7 +208,7 @@ def run(csv_path,
         units=6,
         batch_size=32,
         lookback=4,
-        split_percent=0.80,
+        split_percent=0.60,
         median_filter_window=3,
         which_timedelta='maximum',
         timedelta=None):
@@ -294,13 +299,13 @@ def run(csv_path,
 
 
     ##Getting the confidence intervals of the forecasted time period
-    forecast_upper_conf_interval = np.quantile(forecast_array, 0.95, axis=0)
-    forecast_lower_conf_interval = np.quantile(forecast_array, 0.05, axis=0)
+    forecast_upper_conf_interval = np.quantile(forecast_array, 1, axis=0)
+    forecast_lower_conf_interval = np.quantile(forecast_array, 0, axis=0)
     forecast_mean = np.mean(forecast_array, axis=0)
 
     ##Getting the confidence intervals for the predictions during the observed time period
-    pred_upper_conf_interval = np.quantile(predict_array, 0.95, axis=0)
-    pred_lower_conf_interval = np.quantile(predict_array, 0.05, axis=0)
+    pred_upper_conf_interval = np.quantile(predict_array, 1, axis=0)
+    pred_lower_conf_interval = np.quantile(predict_array, 0, axis=0)
     pred_mean = np.mean(predict_array, axis=0)
 
     ##Just some reshaping
@@ -313,15 +318,19 @@ def run(csv_path,
 
     ##Check if anomalies
     observed_positions_model_domain = df['position'][lookback:].values
-    anomaly_bools = np.logical_or(observed_positions_model_domain>pred_upper_conf_interval, observed_positions_model_domain<pred_lower_conf_interval)
+    absolute_difference = np.abs(observed_positions_model_domain - pred_mean)
+    difference_mean = np.mean(absolute_difference)
+    difference_upper = np.quantile(absolute_difference, 0.95, axis=0)
+    anomaly_bools1 = np.logical_or(observed_positions_model_domain>pred_upper_conf_interval, observed_positions_model_domain<pred_lower_conf_interval)
+    anomaly_bools2 = absolute_difference>difference_upper
 
     ##Plot for observed time period
     plt.rcParams["figure.figsize"] = (16,4)
     plt.plot(observed_dates[:gt_split_date], df['position'][:gt_split_date], color='blue', label='Training Data')
     plt.plot(observed_dates[gt_split_date:], df['position'][gt_split_date:], color='green', label='Validation Data')
     plt.plot(date_predict, pred_mean, label='LSTM Mean', color='violet')
-    plt.scatter(date_predict[anomaly_bools], observed_positions_model_domain[anomaly_bools], color='red', label='Anomalies')
-    plt.fill_between(date_predict, pred_lower_conf_interval, pred_upper_conf_interval, color='violet', alpha=0.4, label='LSTM 95% Confidence Interval')
+    plt.scatter(date_predict[anomaly_bools2], observed_positions_model_domain[anomaly_bools2], color='red', label='Anomalies')
+    plt.fill_between(date_predict, pred_lower_conf_interval, pred_upper_conf_interval, color='violet', alpha=0.4, label='LSTM Min-Max Interval')
     ax = plt.gca()
     ylim = ax.get_ylim()
     plt.vlines(gt_split_date, ylim[0], ylim[1], color='k', label='Train/Val Split')
@@ -340,14 +349,15 @@ def run(csv_path,
                        'predict_upper_conf': pred_upper_conf_interval,
                        'predict_lower_conf': pred_lower_conf_interval,
                        'observed_position': df['position'][lookback:],
-                       'anomaly':anomaly_bools}
+                       'anomaly1':anomaly_bools1,
+                       'anomaly2':anomaly_bools2}
     predict_df = pd.DataFrame(predict_df_dict)
     predict_df.to_csv(os.path.join(folder, site+'_predict.csv'),index=False)
 
     ##Plot for projections
     plt.plot(df['date'], df['position'], color='blue',label='Observed Position')
     plt.plot(forecast_dates,forecast_mean, '--', color='violet', label='LSTM Mean')
-    plt.fill_between(forecast_dates, forecast_lower_conf_interval, forecast_upper_conf_interval, color='violet', alpha=0.4, label='LSTM 95% Confidence Interval')
+    plt.fill_between(forecast_dates, forecast_lower_conf_interval, forecast_upper_conf_interval, color='violet', alpha=0.4, label='LSTM Min-Max Interval')
     plt.xlabel('Time (UTC)')
     plt.ylabel('Cross-Shore Position (m)')
     plt.xlim(min(df['date']), max(forecast_dates))

@@ -193,9 +193,9 @@ random.seed(0)
 ##Noise value in meters
 noise_val = 20
 ##Trend value in m/year
-trend_val = random.uniform(-20, 20)
+trend_val = random.uniform(-3, 3)
 ##Amplitude for yearly pattern in m
-yearly_amplitude = random.uniform(0, 20)
+yearly_amplitude = random.uniform(0, 5)
 ##Revisit time in days
 dt = 12
 ##Fraction of missing time periods
