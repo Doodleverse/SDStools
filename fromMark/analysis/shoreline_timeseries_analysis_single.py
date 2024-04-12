@@ -353,6 +353,7 @@ def make_plots(output_folder,
         plt.ylim(np.nanmin(df_de_trend['position']), np.nanmax(df_de_trend['position']))
         plt.ylabel('Cross-Shore Position (m)')
         plt.xlabel('Time (UTC)')
+        plt.xticks([],[])
         plt.minorticks_on()
         plt.legend()
         ##De-meaned
@@ -361,7 +362,6 @@ def make_plots(output_folder,
         plt.xlim(min(df_de_meaned.index), max(df_de_meaned.index))
         plt.ylim(np.nanmin(df_de_meaned['position']), np.nanmax(df_de_meaned['position']))
         plt.ylabel('Cross-Shore Position (m)')
-        plt.xticks([],[])
         plt.legend()
         plt.minorticks_on()
         plt.tight_layout()
