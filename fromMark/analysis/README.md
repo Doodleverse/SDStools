@@ -9,7 +9,9 @@ Libraries required (Python 3.7, numpy, matplotlib, datetime, random, scipy, pand
 	main(csv_path,
              output_folder,
              name,
-             which_timedelta):
+             which_timedelta,
+	     median_filter_window=3,
+             timedelta=None):
 		"""
 		Timeseries analysis for satellite shoreline data
 		Will save timeseries plot (raw, resampled, de-trended, de-meaned) and autocorrelation plot.
@@ -22,6 +24,7 @@ Libraries required (Python 3.7, numpy, matplotlib, datetime, random, scipy, pand
 		output_folder (str): path to save outputs to
 		name (str): name to give this analysis run
 		which_timedelta (str): 'minimum' 'average' or 'maximum' or 'custom', this is what the timeseries is resampled at
+                median_filter_window (odd int): kernel length for median filter on timeseries
 		timedelta (str, optional): the custom time spacing (e.g., '30D' is 30 days)
 		beware of choosing minimum, with a mix of satellites, the minimum time spacing can be so 
 		low that you run into fourier transform problems
@@ -29,18 +32,22 @@ Libraries required (Python 3.7, numpy, matplotlib, datetime, random, scipy, pand
 		timeseries_analysis_result (dict): results of this cookbook
 		"""
 		
-1. Resample timeseries to minimum, average, or maximum time delta (temporal spacing of timeseries). My gut is to go with the maximum so we aren't creating data. If we go with minimum or average then linearly interpolate the values to get rid of NaNs.
+1. Resample timeseries to minimum, average, maximum, or a custom time delta (temporal spacing of timeseries).
 
-2. Check if timeseries is stationary with ADF test. We'll use a p-value of 0.05. If we get a p-value greater than this then we are interpreting
+2. Linear interpolation to fill NaNs.
+
+3. Median filter to reduce noise. This is a decent filter aimed at removing outliers from timeseries (much more robust than a boxcar/moving average) that requires very little design. In other words, it's effective, it's simple, and it can be applied across a wide variety of data. We don't want to spend all of our time designing timeseries filters.
+
+4. Check if timeseries is stationary with ADF test. We'll use a p-value of 0.05. If we get a p-value greater than this then we are interpreting
 the timeseries as non-stationary (there is a temporal trend). 
 
-3. 
+5. 
 	a) If the timeseries is stationary then de-mean it, compute and plot autocorrelation, compute approximate entropy (measure of how predictable 		the timeseries is, values towards 0 indicate predictability, values towards 1 indicate random).
 
 	b) If the timeseries is non-stationary then compute the trend with linear least squares,
 	and then de-trend the timeseries. Then de-mean, do autocorrelation, and approximate entropy.
 
-4. This will return a dictionary with the following keys:
+6. This will return a dictionary with the following keys:
 
 	* 'stationary_bool': True or False, whether or not the input timeseries was stationary according to the ADF test.
 	* 'computed_trend': a computed linear trend via linear least squares, m/year
@@ -53,6 +60,7 @@ the timeseries as non-stationary (there is a temporal trend).
 	a signal with a period of 1 year, then here the lag_max will be half a year. Autocorrelation in this case should be -1 at a half-year lag and 		+1 at a year lag. Since I do the max calculation on the absolute value of the autocorrelation, you get lag_max at the maximum negative 			correlation.
 	* 'new_timedelta': this is the new time-spacing for the resampled timeseries
 	* 'snr_no_nans': a crude estimate of signal-to-noise ratio, here I just did the mean of the timeseries divided by the standard deviation
+	* 'snr_median_filter': same estimate of signal-to-noise, but performed after the median filter is applied
 	* 'approx_entropy': entropy estimate, values closer to 0 indicate predicatibility, values closer to 1 indicate disorder
 
 main_df will take as input a pandas dataframe instead of a path to a csv. 
@@ -119,6 +127,7 @@ It will output the result dictionary, the resampled pandas dataframe, and the ne
 			 transect_spacing,
 			 which_timedelta,
 			 which_spacedelta,
+			 median_filter_window=3,
 			 timedelta=None,
 			 spacedelta=None):
 		"""
@@ -130,8 +139,9 @@ It will output the result dictionary, the resampled pandas dataframe, and the ne
 		output_folder (str): path to save outputs to
 		which_timedelta (str): 'minimum' 'average' or 'maximum' or 'custom', this is what the timeseries is resampled at
 		which_spacedelta (str): 'minimum' 'average' or 'maximum' or 'custom', this is the matrix is sampled at in the longshore direction
+                median_filter_window (odd int): kernel length for median filter on timeseries
 		timedelta (str, optional): the custom time spacing (e.g., '30D' is 30 days)
-		beware of choosing minimum, with a mix of satellites, the minimum time spacing can be so low that you run into fourier transform problems
+		beware of choosing minimum, with a mix of satellites, the minimum time spacing can be so low that you run into fourier transform 		problems
 		spacedelta (int, optional): custom longshore spacing, do not make this finer than the input transect spacing!!!!
 		outputs:
 		new_matrix_path (str): path to the output matrix csv
