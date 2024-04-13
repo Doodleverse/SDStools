@@ -2,6 +2,60 @@
 
 This will contain scripts for analysis tools for CoastSeg shoreline data.
 
+# Explanation with synthetic timeseries
+
+Consider the following synthetic timeseries of shoreline postion, where the shoreline's cross-shore position is modelled by the simple equation:
+
+y = trend + yearly pattern + noise
+
+And additionally, let's take throw NaNs at random spots in this timeseries.
+
+If we choose a random yearly trend, a random seasonal amplitude, and a noise value of 10 m, we might get a timeseries like the one below:
+
+![timeseries](example/test1.png)
+
+So in this example, a timeseries from 1984 to 2024, with a time-spacing of 12 days, the beach is growing at about 2 m/year, but it also has approximately a 15 m winter vs. summer oscillation.
+
+Sadly, we are missing 5% of the the timeseries and there is random noise that might confuse us.
+
+Can we still capture the trend accurately and the seasonality accurately, even though the timeseries is noisy and missing data?
+
+Let's put this data through some timeseries analysis steps.
+
+1. Resample the timeseries to deal with our data gaps. We shouldn't choose a resampling frequency that is finer than every 12 days. Otherwise we will run into aliasing problems. We'll do 30 days or about a month.
+
+2. Linearly interpolate through any missing data, forwards and backwards, so that we have filled all of the NaNs in the timeseries.
+
+3. Apply a median filter, a simple low-pass filter that can remove outliers. 
+
+4. Check if the timeseries is stationary with an ADF test. A stationary timeseries has no temporal trend. A non-stationary timeseries will show a temporal trend. We already know this timeseries is non-stationary so this test should confirm this.
+
+5. Estimate the trend by running the filtered timeseries through linear least squares. If we had uncertainty estimations for each data point, we could try doing a weighted least squares regression. Currently, we do not have a way of estimating uncertainty for individual satellite derived shoreline observations.
+
+6. De-trend the timeseries and de-mean the timeseries. De-meaning here won't do anything, however, since the earliest point is already at 0 m. It is necessary for CoastSeg data because the cross-shore position is given in terms of a position along a transect that often starts far inland of the beach.
+
+7. Compute the autocorrelation on the de-meaned timeseries. The autocorrelation shows how correlated a timeseries is with a lagged version of itself. We want to find strong negative correlation at half a year, since we know the timeseries should have a yearly cycle. 
+
+Here's what the results of these steps would show:
+
+![timeseries_analysis](example/median_filter_3/test1timeseries.png)
+
+The above figure shows how are timeseries looks differently after our series of processing steps.
+
+![autocorr](example/median_filter_3/test1autocorrelation.png)
+
+This above figure shows the autocorrelation.
+
+![result](example/median_filter_3/result.png)
+
+This screenshot shows numeric results from our analysis steps. What did we learn?
+
+* We confirmed the timeseries is non-stationary.
+* The computed trend was fairly close to what the input trend was.
+* The lag corresponding to the minimum autocorrelation (so maximum negative correlation) was 180 days (about half a year).
+
+So in this case, we were able to pull out the trend accurately as well as the presence of a yearly pattern.
+
 # shoreline_timeseries_analysis_single.py
 
 Libraries required (Python 3.7, numpy, matplotlib, datetime, random, scipy, pandas, statsmodels, os, csv)
@@ -24,7 +78,7 @@ Libraries required (Python 3.7, numpy, matplotlib, datetime, random, scipy, pand
 		output_folder (str): path to save outputs to
 		name (str): name to give this analysis run
 		which_timedelta (str): 'minimum' 'average' or 'maximum' or 'custom', this is what the timeseries is resampled at
-                median_filter_window (odd int): kernel length for median filter on timeseries
+                median_filter_window (odd int): kernel length for median filter on timeseries, be aware of this params affect on autocorrelation!!
 		timedelta (str, optional): the custom time spacing (e.g., '30D' is 30 days)
 		beware of choosing minimum, with a mix of satellites, the minimum time spacing can be so 
 		low that you run into fourier transform problems
@@ -57,6 +111,8 @@ the timeseries as non-stationary (there is a temporal trend).
 	* 'r_sq': the r^2 value from the linear trend estimation, unitless
 	* 'autocorr_max': the maximum value from the autocorrelation estimation, this code computes the maximum of the absolute value of the 			autocorrelation
 	* 'lag_max': the lag that corresponds to the maximum of the autocorrelation, something of note here: if you are computing autocorrelation on
+	* 'autocorr_min': the second largest autocorrelation value
+	* 'lag_min': the lag that corresponds to the second largest autocorrelation value
 	a signal with a period of 1 year, then here the lag_max will be half a year. Autocorrelation in this case should be -1 at a half-year lag and 		+1 at a year lag. Since I do the max calculation on the absolute value of the autocorrelation, you get lag_max at the maximum negative 			correlation.
 	* 'new_timedelta': this is the new time-spacing for the resampled timeseries
 	* 'snr_no_nans': a crude estimate of signal-to-noise ratio, here I just did the mean of the timeseries divided by the standard deviation

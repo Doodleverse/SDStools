@@ -56,8 +56,10 @@ def median_filter(df, window):
     """
     vals = df['position']
     vals_median_filter = scipy.signal.medfilt(vals, window)
-    df['position'] = vals_median_filter
-    return df
+    new_df = pd.DataFrame({'position':vals_median_filter},
+                          index=df.index
+                          )
+    return new_df
     
 def get_linear_trend(df):
     """
@@ -209,14 +211,12 @@ def plot_autocorrelation(output_folder,
     lags = x.lines[-1].get_xdata()
     autocorr = x.lines[-1].get_ydata()
 
-    autocorr = np.abs(autocorr)
     idx = autocorr.argmax()
+    idx2 = autocorr.argmin()
     autocorr_max = np.max(autocorr)
-    autocorr_max2 = sorted(autocorr, reverse=True)[1]
-    idx2, = np.where(autocorr==autocorr_max2)
-    idx2 = idx2[0]
+    autocorr_min = np.min(autocorr)
     lag_max = lags[idx]
-    lag_max2 = lags[idx2]
+    lag_min = lags[idx2]
     
     # plotting the Curve
     x.plot()
@@ -224,7 +224,7 @@ def plot_autocorrelation(output_folder,
     # Display
     plt.savefig(fig_save, dpi=300)
     plt.close()
-    return autocorr_max, lag_max, autocorr_max2, lag_max2, autocorr, lags
+    return autocorr_max, lag_max, autocorr_min, lag_min, autocorr, lags
 
 def compute_approximate_entropy(U, m, r):
     """Compute Aproximate entropy, from https://en.wikipedia.org/wiki/Approximate_entropy
@@ -262,7 +262,7 @@ def make_plots(output_folder,
     if df_de_trend_bool == False:
         plt.rcParams["figure.figsize"] = (16,12)
         ##Raw 
-        plt.subplot(4,1,1)
+        plt.subplot(5,1,1)
         plt.suptitle(name)
         plt.plot(df.index, df['position'], '--o', color='k', label='Raw')
         plt.xlim(min(df.index), max(df.index))
@@ -272,7 +272,7 @@ def make_plots(output_folder,
         plt.minorticks_on()
         plt.legend()
         ##Resampled
-        plt.subplot(4,1,2)
+        plt.subplot(5,1,2)
         plt.plot(df_resampled.index, df_resampled['position'], '--o', color='k', label='Resampled')
         plt.xlim(min(df_resampled.index), max(df_resampled.index))
         plt.ylim(np.nanmin(df_resampled['position']), np.nanmax(df_resampled['position']))
@@ -281,7 +281,7 @@ def make_plots(output_folder,
         plt.minorticks_on()
         plt.legend()
         ##Interpolated
-        plt.subplot(4,1,3)
+        plt.subplot(5,1,3)
         plt.plot(df_no_nans.index, df_no_nans['position'], '--o', color='k', label='Interpolated')
         plt.xlim(min(df_no_nans.index), max(df_no_nans.index))
         plt.ylim(np.nanmin(df_no_nans['position']), np.nanmax(df_no_nans['position']))
@@ -290,7 +290,7 @@ def make_plots(output_folder,
         plt.minorticks_on()
         plt.legend()
         ##Median Filter
-        plt.subplot(4,1,3)
+        plt.subplot(5,1,4)
         plt.plot(df_med_filt.index, df_med_filt['position'], '--o', color='k', label='Median Filter')
         plt.xlim(min(df_med_filt.index), max(df_med_filt.index))
         plt.ylim(np.nanmin(df_med_filt['position']), np.nanmax(df_med_filt['position']))
@@ -299,7 +299,7 @@ def make_plots(output_folder,
         plt.minorticks_on()
         plt.legend()        
         ##De-meaned
-        plt.subplot(4,1,4)
+        plt.subplot(5,1,5)
         plt.plot(df_de_meaned.index, df_de_meaned['position'], '--o', color='k', label='De-Meaned')
         plt.xlim(min(df_de_meaned.index), max(df_de_meaned.index))
         plt.ylim(np.nanmin(df_de_meaned['position']), np.nanmax(df_de_meaned['position']))
@@ -416,13 +416,13 @@ def main_df(df,
     snr_median_filter = np.abs(np.mean(df_med_filt['position']))/np.std(df_med_filt['position'])
     
     ##Step 5: Check for stationarity with ADF test
-    stationary_bool = adf_test(df_no_nans['position'])
+    stationary_bool = adf_test(df_med_filt['position'])
     
     ##Step 6a: If timeseries stationary, de-mean, compute autocorrelation and approximate entropy
     ##Then make plots
     if stationary_bool == True:
         df_de_meaned = de_mean_timeseries(df_med_filt)
-        autocorr_max, lag_max, autocorr_max2, lag_max2, autocorr, lags = plot_autocorrelation(output_folder,
+        autocorr_max, lag_max, autocorr_min, lag_min, autocorr, lags = plot_autocorrelation(output_folder,
                                                                                               name,
                                                                                               df_de_meaned)
         approximate_entropy = compute_approximate_entropy(df_de_meaned['position'],
@@ -450,7 +450,7 @@ def main_df(df,
         
         ##Step 5: De-mean the timeseries
         df_de_meaned = de_mean_timeseries(df_de_trend)
-        autocorr_max, lag_max, autocorr_max2, lag_max2, autocorr, lags = plot_autocorrelation(output_folder,
+        autocorr_max, lag_max, autocorr_min, lag_min, autocorr, lags = plot_autocorrelation(output_folder,
                                                                                               name,
                                                                                               df_de_meaned)
         approximate_entropy = compute_approximate_entropy(df_de_meaned['position'],
@@ -482,8 +482,8 @@ def main_df(df,
                                   'r_sq':r_sq,
                                   'autocorr_max':autocorr_max,
                                   'lag_max':str(lag_max*new_timedelta),
-                                  'autocorr_max2':autocorr_max2,
-                                  'lag_max2':str(lag_max2*new_timedelta),
+                                  'autocorr_max2':autocorr_min,
+                                  'lag_max2':str(lag_min*new_timedelta),
                                   'new_timedelta':str(new_timedelta),
                                   'snr_no_nans':snr_no_nans,
                                   'snr_median_filter':snr_median_filter,
@@ -501,8 +501,8 @@ def main_df(df,
                                        }
                                       )
     output_df_autocorr.to_csv(output_path_autocorr)
-    output_df = pd.DataFrame({'date':df_no_nans.index,
-                              'position':df_no_nans['position']})
+    output_df = pd.DataFrame({'date':df_med_filt.index,
+                              'position':df_med_filt['position']})
     output_path = os.path.join(output_folder, name+'_resampled.csv')
     output_df.to_csv(output_path)
     return timeseries_analysis_result, output_df, new_timedelta
@@ -552,13 +552,13 @@ def main(csv_path,
     snr_median_filter = np.abs(np.mean(df_med_filt['position']))/np.std(df_med_filt['position'])
     
     ##Step 5: Check for stationarity with ADF test
-    stationary_bool = adf_test(df_no_nans['position'])
+    stationary_bool = adf_test(df_med_filt['position'])
     
     ##Step 6a: If timeseries stationary, de-mean, compute autocorrelation and approximate entropy
     ##Then make plots
     if stationary_bool == True:
         df_de_meaned = de_mean_timeseries(df_med_filt)
-        autocorr_max, lag_max, autocorr_max2, lag_max2, autocorr, lags = plot_autocorrelation(output_folder,
+        autocorr_max, lag_max, autocorr_min, lag_min, autocorr, lags = plot_autocorrelation(output_folder,
                                                                                               name,
                                                                                               df_de_meaned)
         approximate_entropy = compute_approximate_entropy(df_de_meaned['position'],
@@ -586,7 +586,7 @@ def main(csv_path,
         
         ##Step 5: De-mean the timeseries
         df_de_meaned = de_mean_timeseries(df_de_trend)
-        autocorr_max, lag_max, autocorr_max2, lag_max2, autocorr, lags = plot_autocorrelation(output_folder,
+        autocorr_max, lag_max, autocorr_min, lag_min, autocorr, lags = plot_autocorrelation(output_folder,
                                                                                               name,
                                                                                               df_de_meaned)
         approximate_entropy = compute_approximate_entropy(df_de_meaned['position'],
@@ -618,8 +618,8 @@ def main(csv_path,
                                   'r_sq':r_sq,
                                   'autocorr_max':autocorr_max,
                                   'lag_max':str(lag_max*new_timedelta),
-                                  'autocorr_max2':autocorr_max2,
-                                  'lag_max2':str(lag_max2*new_timedelta),
+                                  'autocorr_min':autocorr_min,
+                                  'lag_min':str(lag_min*new_timedelta),
                                   'new_timedelta':str(new_timedelta),
                                   'snr_no_nans':snr_no_nans,
                                   'snr_median_filter':snr_median_filter,
@@ -637,8 +637,8 @@ def main(csv_path,
                                        }
                                       )
     output_df_autocorr.to_csv(output_path_autocorr)
-    output_df = pd.DataFrame({'date':df_no_nans.index,
-                              'position':df_no_nans['position']})
+    output_df = pd.DataFrame({'date':df_med_filt.index,
+                              'position':df_med_filt['position']})
     output_path = os.path.join(output_folder, name+'_resampled.csv')
     output_df.to_csv(output_path)
     return timeseries_analysis_result
