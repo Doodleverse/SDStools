@@ -40,13 +40,13 @@ Here's what the results of these steps would show:
 
 ![timeseries_analysis](example/median_filter_3/test1timeseries.png)
 
-The above figure shows how are timeseries looks differently after our series of processing steps.
+The above figure shows how our timeseries looks differently after our series of processing steps.
 
 ![autocorr](example/median_filter_3/test1autocorrelation.png)
 
 This above figure shows the autocorrelation.
 
-![result](example/median_filter_3/result.png)
+![result](example/median_filter_3/result.PNG)
 
 This screenshot shows numeric results from our analysis steps. What did we learn?
 
