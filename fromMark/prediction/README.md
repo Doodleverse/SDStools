@@ -91,9 +91,9 @@ random walk, rendering the rest of this exercise as useless. This might be due t
 
 	![timeseriesanalysis](example/lookback_12/positiontimeseries.png)
 
-	![timeseriesanalysis](example/lookback_12/position_autocorr.png)
+	![autocorr](example/lookback_12/positionautocorrelation.png)
 
-	![timeseriesanalysis](example/lookback_12/tsa_result.PNG)
+	![tsaresult](example/lookback_12/tsa_result.png)
 
 	* Our new timeseries was resampled at 30 days and we find the minimum autocorrelation at a lag of 180 days, indicating a yearly pattern.
 	
