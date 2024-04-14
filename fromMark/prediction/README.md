@@ -116,9 +116,11 @@ random walk, rendering the rest of this exercise as useless. This might be due t
 	
 	![forecastplot](example/lookback_12/test1_project.png)
 
-	* And here we see how our model performs when it is forecasting. It seems to be able to continue the yearly pattern but can't maintain the 	  increasing trend. We can see this more clearly if we forecast for 100 timesteps (100 months).
+	* And here we see how our model performs when it is forecasting. It seems to be able to continue the yearly pattern but can't maintain the 	  increasing trend. 
 
 	![forecastlongplot](example/lookback_12_longer_forecast/test1_project.png)
+
+	* We can see this more clearly if we forecast for 100 timesteps (100 months).
 
 	* This example only used past shoreline positions to predict the next shoreline position. Perhaps we would see how the model performs with 	  extra predictive variables (e.g., $H$, $T$). This might improve the model's performance on the validation data. It's doubtful that the 	  forecasting ability will improve though. We could, however, get a better understanding of the importance of various wave parameters' effect 	  on shoreline position. Just from a correlation/variance explanation persepective though.
 	
