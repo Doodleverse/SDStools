@@ -55,12 +55,12 @@ Ok so now let's investigate the folloiwng question: Can LSTMs help with forecast
 
 First, I want to run through the typical steps for building a neural network aimed at timeseries prediction.
 
-1. You need to decide a model architecure to use. After an exhaustive literature search, I decided on using bidirectional LSTMs.
+1. We need to decide a model architecure to use. After an exhaustive literature search, I decided on using bidirectional LSTMs.
 These are at the forefront of deep learning-based timeseries modeling. Transformers might be slightly more effective, but I will leave that exploration for the future (maybe) or for the reader. Any DL model will have the same pitfalls as will be demonstrated later on. Stay away from repos that claim to have great timeseries prediction models. They usually are just overly-complex models that perform well on simple, canned data. If they were actually as good as they claim, again, we would be able to predict things much better. 
-2. Next you need to write the code to implement your model. I chose to use Keras because it is a somewhat elegantly designed library that 
+2. Next we need to write the code to implement your model. I chose to use Keras because it is a somewhat elegantly designed library that 
 has a lot of contributors that aim to maintain it. 
 3. Next you need data to run your code on. I am interesting in modeling shoreline change, so I decided to use timeseries data of cross-shore position obtained from CoastSeg.
-4. You need to do some analysis on your data to extract information on signal-to-noise ratio, entropy, stationarity, temporal trends, and seasonality. If your data has a low signal-to-noise ratio or high entropy, it's too random to develop any predictive model better than a 
+4. We need to do some analysis on your data to extract information on signal-to-noise ratio, entropy, stationarity, temporal trends, and seasonality. If your data has a low signal-to-noise ratio or high entropy, it's too random to develop any predictive model better than a 
 random walk, rendering the rest of this exercise as useless. This might be due to the quality of our data, or, the process we are studying, according to the way we measure it, is unpredictable.
 5. Train the LSTM model. This requires the selection of a variety of hyperparameters:
 	* Batch size: this is how much of the timeseries you feed into the model during each iteration of training. After an iteration, the weights 	in the model get updated. Higher batch sizes can result in faster training times, but that can also result in a less-effective model. Think 	about why that might be. We are going to use a batch size of 32.
