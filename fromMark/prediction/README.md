@@ -63,31 +63,31 @@ has a lot of contributors that aim to maintain it.
 4. We need to do some analysis on your data to extract information on signal-to-noise ratio, entropy, stationarity, temporal trends, and seasonality. If your data has a low signal-to-noise ratio or high entropy, it's too random to develop any predictive model better than a 
 random walk, rendering the rest of this exercise as useless. This might be due to the quality of our data, or, the process we are studying, according to the way we measure it, is unpredictable.
 5. Train the LSTM model. This requires the selection of a variety of hyperparameters:
-	* Batch size: this is how much of the timeseries you feed into the model during each iteration of training. After an iteration, the weights 	in the model get updated. Higher batch sizes can result in faster training times, but that can also result in a less-effective model. Think 	about why that might be. We are going to use a batch size of 32.
-	* training/validation split: How much of the data is used for training and how much is used for validation. You can also have an additional 	test dataset. The training dataset is used to update model weights. The validation dataset is used to track model error independently during 	training. The test dataset would be a holdout set that is not used during training at all and used for model error estimation after training 	is complete. We are going to use an 80/20 split (first 80% of timeseries for training, last 20% for validation).
-	* Training epochs: how many times the model is shown the complete training dataset during training. This can be easilly estimated by using an 	early-stopping callback. In other words, you halt training once the validation loss stops improving, and restore the weights that resulted in 	the model with the lowest error on the validation dataset. We just pick a high number (1000) and let the model use an early-stopping 	callback.
-	* LSTM units: the horizontal complexity of the LSTM layer or number of hidden units in the LSTM layer. We will use 64.
-	* Lookback value or lag value: how many previous values (in terms of timesteps) are used in generating predictions. For a timeseries sampled 	every 30 days, using a lookback value of 6 implies you are using six months of data to predict the next month's value. This we need to choose 	AFTER doing some seasonal analysis on our data. We need to find the most dominant frequency in our data and then use that to guide our choice 	for lookback value. If you do this blindly and try grid-searching for the correct lookback value, you will find that using a lookback value 	of 1 timestep is best. This results in a model that just spits out the previous value, and then blows up when it is left to its own devices.
-	* Recurrent dropout (I keep this constant at 0.5): this is a clever way of keeping some randomness and avoiding overfitting. Basically you 	ignore some of the weights during each iteration when you update them based on the backpropagated error.
-	* loss function: we will use mean absolute error so our losses are actually interpretable (in units of meters).
-	* We will also use the rectified linear unit (ReLu) for our activation function and Adam as our optimizer. 
+* Batch size: this is how much of the timeseries you feed into the model during each iteration of training. After an iteration, the weights in the model get updated. Higher batch sizes can result in faster training times, but that can also result in a less-effective model. Think about why that might be. We are going to use a batch size of 32.
+* training/validation split: How much of the data is used for training and how much is used for validation. You can also have an additional test dataset. The training dataset is used to update model weights. The validation dataset is used to track model error independently during training. The test dataset would be a holdout set that is not used during training at all and used for model error estimation after training 	is complete. We are going to use an 80/20 split (first 80% of timeseries for training, last 20% for validation).
+* Training epochs: how many times the model is shown the complete training dataset during training. This can be easilly estimated by using an early-stopping callback. In other words, you halt training once the validation loss stops improving, and restore the weights that resulted in the model with the lowest error on the validation dataset. We just pick a high number (1000) and let the model use an early-stopping callback.
+* LSTM units: the horizontal complexity of the LSTM layer or number of hidden units in the LSTM layer. We will use 64.
+* Lookback value or lag value: how many previous values (in terms of timesteps) are used in generating predictions. For a timeseries sampled every 30 days, using a lookback value of 6 implies you are using six months of data to predict the next month's value. This we need to choose AFTER doing some seasonal analysis on our data. We need to find the most dominant frequency in our data and then use that to guide our choice for lookback value. If you do this blindly and try grid-searching for the correct lookback value, you will find that using a lookback value of 1 timestep is best. This results in a model that just spits out the previous value, and then blows up when it is left to its own devices.
+* Recurrent dropout (I keep this constant at 0.5): this is a clever way of keeping some randomness and avoiding overfitting. Basically you ignore some of the weights during each iteration when you update them based on the backpropagated error.
+* loss function: we will use mean absolute error so our losses are actually interpretable (in units of meters).
+* We will also use the rectified linear unit (ReLu) for our activation function and Adam as our optimizer. 
 6. We might find we have an awesome model that performs well on our validation data. But how well does it perform once we let it loose? Can it continue to make meaningful predictions when we run it recursively, or use its own outputs as inputs? If it generates junk, then think of what we actually have: an extremely complicated black-box model that can predict accurately what has already been observed, but fails miserably when predicting future events. This type of model is only useful if we constantly retrain it as new data comes in. Think of how hard that is to actually implement. 
 
 # Univariate Example with Synthetic Timseries
 
 1.  Consider the following synthetic timeseries of shoreline postion, where the shoreline's cross-shore position is modelled by the simple equation:
 
-	* y = trend + yearly pattern + noise
+* y = trend + yearly pattern + noise
 
-	* And additionally, let's take throw NaNs at random spots in this timeseries.
+* And additionally, let's take throw NaNs at random spots in this timeseries.
 
-	* If we choose a random yearly trend, a random seasonal amplitude, and a noise value of 10 m, we might get a timeseries like the one below:
+* If we choose a random yearly trend, a random seasonal amplitude, and a noise value of 10 m, we might get a timeseries like the one below:
 
 ![timeseries](prediction/example/test1.png)
 
-	* So in this example, a timeseries from 1984 to 2024, with a time-spacing of 12 days, the beach is growing at about 2 m/year, but it also has 	  approximately a 15 m winter vs. summer oscillation.
+* So in this example, a timeseries from 1984 to 2024, with a time-spacing of 12 days, the beach is growing at about 2 m/year, but it also has 	  approximately a 15 m winter vs. summer oscillation.
 
-	* First we will run it through the timeseries analysis cookbook in SDSTools/fromMark/analysis/shoreline_timeseries_analysis_single.py
+* First we will run it through the timeseries analysis cookbook in SDSTools/fromMark/analysis/shoreline_timeseries_analysis_single.py
 
 ![timeseriesanalysis](prediction/example/lookback_12/positiontimeseries.png)
 
@@ -95,36 +95,36 @@ random walk, rendering the rest of this exercise as useless. This might be due t
 
 ![tsaresult](prediction/example/lookback_12/tsa_result.png)
 
-	* Our new timeseries was resampled at 30 days and we find the minimum autocorrelation at a lag of 180 days, indicating a yearly pattern.
+* Our new timeseries was resampled at 30 days and we find the minimum autocorrelation at a lag of 180 days, indicating a yearly pattern.
 	
 
-2.	Next we would use SDSTools/fromMark/prediction/lstm_coastseg_single_transect.py to train a univariate LSTM model.
+2.  Next we would use SDSTools/fromMark/prediction/lstm_coastseg_single_transect.py to train a univariate LSTM model.
 	
-	* Let's use a lookback value of 12 timesteps or 1 year.
+* Let's use a lookback value of 12 timesteps or 1 year.
 
-	* Let's repeat training 30 times to get a confidence interval for the model outputs.
+* Let's repeat training 30 times to get a confidence interval for the model outputs.
 	
-	* Let's project the model 30 timesteps (so 30 months) beyond the observed data's temporal range to see what our model does once it is only 	  using its own outputs as model inputs.
+* Let's project the model 30 timesteps (so 30 months) beyond the observed data's temporal range to see what our model does once it is only 	  using its own outputs as model inputs.
 	
 ![lossplot](prediction/example/lookback_12/loss_plot.png)
 
-	* Here we see our loss plot showing how both the training and validation losses converged over more training epochs.
+* Here we see our loss plot showing how both the training and validation losses converged over more training epochs.
 
 ![predictplot](prediction/example/lookback_12/test1_predict.png)
 
-	* Here we see how our model performed in the training and validation portions. 
+* Here we see how our model performed in the training and validation portions. 
 	
 ![forecastplot](prediction/example/lookback_12/test1_project.png)
 
-	* And here we see how our model performs when it is forecasting. It seems to be able to continue the yearly pattern but can't maintain the 	  increasing trend. 
+* And here we see how our model performs when it is forecasting. It seems to be able to continue the yearly pattern but can't maintain the increasing trend. 
 
 ![forecastlongplot](prediction/example/lookback_12_longer_forecast/test1_project.png)
 
-	* We can see this more clearly if we forecast for 100 timesteps (100 months).
+* We can see this more clearly if we forecast for 100 timesteps (100 months).
 
-	* This example only used past shoreline positions to predict the next shoreline position. Perhaps we would see how the model performs with 	  extra predictive variables (e.g., $H$, $T$). This might improve the model's performance on the validation data. It's doubtful that the 	  forecasting ability will improve though. We could, however, get a better understanding of the importance of various wave parameters' effect 	  on shoreline position. Just from a correlation/variance explanation persepective though.
+* This example only used past shoreline positions to predict the next shoreline position. Perhaps we would see how the model performs with 	  extra predictive variables (e.g., $H$, $T$). This might improve the model's performance on the validation data. It's doubtful that the forecasting ability will improve though. We could, however, get a better understanding of the importance of various wave parameters' effect on shoreline position. Just from a correlation/variance explanation persepective though.
 	
-	* You might have noticed that the plot showing predictions over the training and validation sections had anomalies marked. These were points 	  in the timeseries that were far out of the prediction's confidence bounds. This could be useful for flagging anomalous events or bad data 	  in our shoreline timeseries. I defined the anomalies by computing the absolute difference between the mean predictions and the obeserved 	  data points, and then by flagging all points that were outside of that array of differences 95% confidence interval.
+* You might have noticed that the plot showing predictions over the training and validation sections had anomalies marked. These were points in the timeseries that were far out of the prediction's confidence bounds. This could be useful for flagging anomalous events or bad data in our shoreline timeseries. I defined the anomalies by computing the absolute difference between the mean predictions and the obeserved data points, and then by flagging all points that were outside of that array of differences 95% confidence interval.
 
 # Before you use
 
