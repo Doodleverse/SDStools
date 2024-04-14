@@ -16,9 +16,10 @@ Can try making this conda environment with the yml file.
 
 Disclaimers: 
 1. Using empirical observations to explain and predict the future is, always has been, and always will be plagued by the induction fallacy. This is why scientists use mathematics and physics to develop theory and theory-based models for predicting future events. Generalizations can always be disproved by finding one counterexample. 
-2. Data-driven models are only as good as the data being fed into those models.
-3. Random processes are, by definition, unpredictable.
-4. Determining a measured process is random does not necessarilly imply that that process is actually random. It could imply that the way it is being measured results in those measurements being random.
+2. Complex systems are extremeley hard to predict because of sensitivity to initial conditions as well as feedback loops that can amplify processes.
+3. Data-driven models are only as good as the data being fed into those models.
+4. Random processes are, by definition, unpredictable.
+5. Determining a measured process is random does not necessarilly imply that that process is actually random. It could imply that the way it is being measured results in those measurements being random.
 
 Neural networks (spefiically recurrent neural networks, or in this case long short-term memory (LSTM) networks) are somewhat powerful tools
 for timeseries modeling. If they were actually powerful we would be able to predict many things a lot better.
