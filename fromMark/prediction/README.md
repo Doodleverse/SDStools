@@ -35,14 +35,14 @@ In the univariate case, the NN would be using past values in a single timeseries
 
 In the multivariate case, the NN could be designed to take as input past values from each variable's timeseries and output a value (or sequence) for one variable or multiple variables. 
 
-In the context of shoreline modeling, we could have as input a timeseries of shoreline position (y), wave height (H), and wave period (T).
-We could then train a model to use $$k$$ past values of each of those variables to output the next shoreline position ($$y_{i+1}$$).
+In the context of shoreline modeling, we could have as input a timeseries of shoreline position ($y$), wave height ($H$), and wave period ($T$).
+We could then train a model to use $k$ past values of each of those variables to output the next shoreline position ($y_{i+1}$).
 
-	$$y_{i+1} = f([y_i, y_{i-1}, ... y_{i-k}], [H_i, H_{i-1}, H_{i-k}], [T_i, T_{i-1}, ..., T_{i-k}])$$
+$$y_{i+1} = f([y_i, y_{i-1}, ... y_{i-k}], [H_i, H_{i-1}, H_{i-k}], [T_i, T_{i-1}, ..., T_{i-k}])$$
 
 Additionally, we could take as input several timeseries of shoreline positions, taken from n transects along a beach, as well as timeseries of wave height and wave period (H, T), and then train a model to output the next shoreline position ($$y_{i+1, j}$$) for all $$n$$ transects. We would probably only want to do this in "closed" systems like a single littoral cell. We could probably use a single offshore wave buoy to get our wave data.
 
-	$$Y_{i+1} = [y_{i+1, 1}, y_{i+1, 2}, ..., y_{i_1, n}] = f([y_{i, 1}, y_{i, 2}, ..., y_{i, n},$$
+$$Y_{i+1} = [y_{i+1, 1}, y_{i+1, 2}, ..., y_{i_1, n}] = f([y_{i, 1}, y_{i, 2}, ..., y_{i, n},$$
 
 We could also just use the shoreline position timeseries as input (either single or multiple at various transects along a beach).
 
@@ -70,7 +70,7 @@ random walk, rendering the rest of this exercise as useless. This might be due t
 
 # Univariate Example with Synthetic Timseries
 
-1.  	Consider the following synthetic timeseries of shoreline postion, where the shoreline's cross-shore position is modelled by the simple 	equation:
+1.  Consider the following synthetic timeseries of shoreline postion, where the shoreline's cross-shore position is modelled by the simple equation:
 
 	* y = trend + yearly pattern + noise
 
