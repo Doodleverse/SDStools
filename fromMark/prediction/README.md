@@ -40,9 +40,9 @@ We could then train a model to use $k$ past values of each of those variables to
 
 $$y_{i+1} = f([y_i, y_{i-1}, ... y_{i-k}], [H_i, H_{i-1}, H_{i-k}], [T_i, T_{i-1}, ..., T_{i-k}])$$
 
-Additionally, we could take as input several timeseries of shoreline positions, taken from n transects along a beach, as well as timeseries of wave height and wave period (H, T), and then train a model to output the next shoreline position ($$y_{i+1, j}$$) for all $$n$$ transects. We would probably only want to do this in "closed" systems like a single littoral cell. We could probably use a single offshore wave buoy to get our wave data.
+Additionally, we could take as input several timeseries of shoreline positions, taken from n transects along a beach, as well as timeseries of wave height and wave period ($H$, $T$), and then train a model to output the next shoreline position ($y_{i+1, j}$) for all $n$ transects. We would probably only want to do this in "closed" systems like a single littoral cell. We could probably use a single offshore wave buoy to get our wave data.
 
-$$Y_{i+1} = [y_{i+1, 1}, y_{i+1, 2}, ..., y_{i_1, n}] = f([y_{i, 1}, y_{i, 2}, ..., y_{i, n},$$
+$$Y_{i+1} = [y_{i+1, 1}, y_{i+1, 2}, ..., y_{i_1, n}] = f([y_{i, 1}, y_{i-1, 1}, ..., y_{i-k, 1}], [y_{i, 2}, y_{i-1, 2}, ..., y_{i-k, 2}], ..., [y_{i, n}, y_{i-2, n}, ... y_{i-k, n}], [H_i, H_{i-1}, ..., H_{i-k}], [T_i, T_{i-1}, ..., T_{i-k}]$$
 
 We could also just use the shoreline position timeseries as input (either single or multiple at various transects along a beach).
 
