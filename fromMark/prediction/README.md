@@ -83,17 +83,17 @@ random walk, rendering the rest of this exercise as useless. This might be due t
 
 * If we choose a random yearly trend, a random seasonal amplitude, and a noise value of 10 m, we might get a timeseries like the one below:
 
-![timeseries](prediction/example/test1.png)
+![timeseries](example/test1.png)
 
 * So in this example, a timeseries from 1984 to 2024, with a time-spacing of 12 days, the beach is growing at about 2 m/year, but it also has 	  approximately a 15 m winter vs. summer oscillation.
 
 * First we will run it through the timeseries analysis cookbook in SDSTools/fromMark/analysis/shoreline_timeseries_analysis_single.py
 
-![timeseriesanalysis](prediction/example/lookback_12/positiontimeseries.png)
+![timeseriesanalysis](example/lookback_12/positiontimeseries.png)
 
-![autocorr](prediction/example/lookback_12/positionautocorrelation.png)
+![autocorr](example/lookback_12/positionautocorrelation.png)
 
-![tsaresult](prediction/example/lookback_12/tsa_result.png)
+![tsaresult](example/lookback_12/tsa_result.png)
 
 * Our new timeseries was resampled at 30 days and we find the minimum autocorrelation at a lag of 180 days, indicating a yearly pattern.
 	
@@ -106,19 +106,19 @@ random walk, rendering the rest of this exercise as useless. This might be due t
 	
 * Let's project the model 30 timesteps (so 30 months) beyond the observed data's temporal range to see what our model does once it is only 	  using its own outputs as model inputs.
 	
-![lossplot](prediction/example/lookback_12/loss_plot.png)
+![lossplot](example/lookback_12/loss_plot.png)
 
 * Here we see our loss plot showing how both the training and validation losses converged over more training epochs.
 
-![predictplot](prediction/example/lookback_12/test1_predict.png)
+![predictplot](example/lookback_12/test1_predict.png)
 
 * Here we see how our model performed in the training and validation portions. 
 	
-![forecastplot](prediction/example/lookback_12/test1_project.png)
+![forecastplot](example/lookback_12/test1_project.png)
 
 * And here we see how our model performs when it is forecasting. It seems to be able to continue the yearly pattern but can't maintain the increasing trend. 
 
-![forecastlongplot](prediction/example/lookback_12_longer_forecast/test1_project.png)
+![forecastlongplot](example/lookback_12_longer_forecast/test1_project.png)
 
 * We can see this more clearly if we forecast for 100 timesteps (100 months).
 
