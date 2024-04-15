@@ -125,7 +125,7 @@ random walk, rendering the rest of this exercise as useless. This might be due t
 
 * This example only used past shoreline positions to predict the next shoreline position. Perhaps we would see how the model performs with 	  extra predictive variables (e.g., $H$, $T$). This might improve the model's performance on the validation data. It's doubtful that the forecasting ability will improve though. We could, however, get a better understanding of the importance of various wave parameters' effect on shoreline position. Just from a correlation/variance explanation persepective though.
 	
-* You might have noticed that the plot showing predictions over the training and validation sections had anomalies marked. These were points in the timeseries that were far out of the prediction's confidence bounds. This could be useful for flagging anomalous events or bad data in our shoreline timeseries. I defined the anomalies by computing the absolute difference between the mean predictions and the obeserved data points, and then by flagging all points that were outside of that array of differences 95% confidence interval.
+* You might have noticed that the plot showing predictions over the training and validation sections had anomalies marked. These were points in the timeseries that were far out of the prediction's confidence bounds. This could be useful for flagging anomalous events or bad data in our shoreline timeseries. I defined the anomalies by computing the absolute difference between the mean predictions and the obeserved data points, and then by flagging all points that were outside of that array of differences' 95% confidence interval.
 
 # Before you use
 
