@@ -113,7 +113,7 @@ the timeseries as non-stationary (there is a temporal trend).
 	* 'lag_max': the lag that corresponds to the maximum of the autocorrelation, something of note here: if you are computing autocorrelation on
 	* 'autocorr_min': the second largest autocorrelation value
 	* 'lag_min': the lag that corresponds to the second largest autocorrelation value
-	a signal with a period of 1 year, then here the lag_max will be half a year. Autocorrelation in this case should be -1 at a half-year lag and 		+1 at a year lag. Since I do the max calculation on the absolute value of the autocorrelation, you get lag_max at the maximum negative 			correlation.
+	a signal with a period of 1 year, then here the lag_max will be half a year. Autocorrelation in this case should be -1 at a half-year lag and 	+1 at a year lag. Since I do the max calculation on the absolute value of the autocorrelation, you get lag_max at the maximum negative 	correlation.
 	* 'new_timedelta': this is the new time-spacing for the resampled timeseries
 	* 'snr_no_nans': a crude estimate of signal-to-noise ratio, here I just did the mean of the timeseries divided by the standard deviation
 	* 'snr_median_filter': same estimate of signal-to-noise, but performed after the median filter is applied
