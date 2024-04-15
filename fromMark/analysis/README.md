@@ -59,7 +59,8 @@ This screenshot shows numeric results from our analysis steps. What did we learn
 * We confirmed the timeseries is non-stationary.
 * The computed trend was fairly close to what the input trend was.
 * The lag corresponding to the minimum autocorrelation (so maximum negative correlation) was 180 days (about half a year).
-* This led us to estimating a best fit sin wave with an amplitude of 7.5 m, a period of just under 365 days, and an RMSE of 4.55 m.
+* This led us to estimating a best fit sin wave with an amplitude of 7.5 m, a period of just under 365 days, and an RMSE of 4.55 m. 
+* The noise value added to the original timeseries was normally distributed between -10 m and 10 m, so an RMSE of 4.55 m, or about 5 m is about right.
 * So in this case, we estimated the trend, the seasonal period, the seasonal amplitude, and the noise pretty well.
 * More time gaps and more noise would obviously make this more difficult. As would having weaker trends and weaker seasonal amplitudes.
 
