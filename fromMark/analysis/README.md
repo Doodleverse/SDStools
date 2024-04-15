@@ -34,27 +34,35 @@ Let's put this data through some timeseries analysis steps.
 
 6. De-trend the timeseries and de-mean the timeseries. De-meaning here won't do anything, however, since the earliest point is already at 0 m. It is necessary for CoastSeg data because the cross-shore position is given in terms of a position along a transect that often starts far inland of the beach.
 
-7. Compute the autocorrelation on the de-meaned timeseries. The autocorrelation shows how correlated a timeseries is with a lagged version of itself. We want to find strong negative correlation at half a year, since we know the timeseries should have a yearly cycle. 
+7. Compute the autocorrelation on the de-meaned timeseries. The autocorrelation shows how correlated a timeseries is with a lagged version of itself. We want to find strong negative correlation at half a year, since we know the timeseries should have a yearly cycle.
+
+8. Use information from the autocorrelation to fit a sine wave to our de-trended and de-meaned data, estimating the seasonal amplitude, phase, and frequency/period.
 
 Here's what the results of these steps would show:
 
-![timeseries_analysis](example/median_filter_3/test1timeseries.png)
+![timeseries_analysis](example/test1timeseries.png)
 
 The above figure shows how our timeseries looks differently after our series of processing steps.
 
-![autocorr](example/median_filter_3/test1autocorrelation.png)
+![autocorr](example/test1autocorrelation.png)
 
 This above figure shows the autocorrelation.
 
-![result](example/median_filter_3/result.PNG)
+![sinfit](example/sin_fit.png)
+
+This figure shows the sinusoid fit.
+
+![result](example/result.PNG)
 
 This screenshot shows numeric results from our analysis steps. What did we learn?
 
 * We confirmed the timeseries is non-stationary.
 * The computed trend was fairly close to what the input trend was.
 * The lag corresponding to the minimum autocorrelation (so maximum negative correlation) was 180 days (about half a year).
+* This led us to estimating a best fit sin wave with a an amplitude of 7.5 m and a period of just under 365 days, with an RMSE of 4.55 m.
+* So in this case, we estimated the trend, the seasonal period, the seasonal amplitude, and the noise pretty well.
+* More time gaps and more noise would obviously make this more difficult. As would having weaker trends and weaker seasonal amplitudes.
 
-So in this case, we were able to pull out the trend accurately as well as the presence of a yearly pattern.
 
 # shoreline_timeseries_analysis_single.py
 

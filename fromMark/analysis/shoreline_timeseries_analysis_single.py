@@ -356,7 +356,6 @@ def make_plots(output_folder,
         plt.xlim(min(df_de_trend.index), max(df_de_trend.index))
         plt.ylim(np.nanmin(df_de_trend['position']), np.nanmax(df_de_trend['position']))
         plt.ylabel('Cross-Shore Position (m)')
-        plt.xlabel('Time (UTC)')
         plt.xticks([],[])
         plt.minorticks_on()
         plt.legend()
@@ -366,25 +365,68 @@ def make_plots(output_folder,
         plt.xlim(min(df_de_meaned.index), max(df_de_meaned.index))
         plt.ylim(np.nanmin(df_de_meaned['position']), np.nanmax(df_de_meaned['position']))
         plt.ylabel('Cross-Shore Position (m)')
+        plt.xlabel('Time (UTC)')
         plt.legend()
         plt.minorticks_on()
         plt.tight_layout()
         plt.savefig(fig_save, dpi=300)
         plt.close()
 
-def get_seasonal_amplitude(df, lag):
+def fit_sine(t, y, lag, timedelta, output_folder):
     """
-    Gets the mean amplitude of the seasonaility
+    Fitting a sine wave to data
+    adapted from https://stackoverflow.com/questions/16716302/how-do-i-fit-a-sine-curve-to-my-data-with-pylab-and-numpy
     inputs:
-    df (pandas DataFrame): shoreline timeseries data
-    lag (timedelta): period of the seasonality
+    t (array of datetimes)
+    y (array of shoreline poisition)
+    lag (int): number of lags
+    timedelta (datetime.TimeDelta): time spacing of trace
+    output_folder (path): path to output figure to
     outputs:
-    amplitudes (numpy array): all of the amplitudes
-    mean_amplitude:
-    sd_amplitude:
+    result_dict: sine wave fit params
     """
-    
+    fig_save_path = os.path.join(output_folder, 'sin_fit.png')
+    tt = np.arange(0, len(t), 1)
+    yy = np.array(y)
+    guess_period = lag*2
+    guess_freq = 1./guess_period
+    guess_amp = (np.max(yy)-np.min(yy))/2
+    guess_offset = np.mean(yy)
+    guess = np.array([guess_amp, 2.*np.pi*guess_freq, 0.])
 
+    def sinfunc(t, A, w, p):  return A * np.sin(w*t + p)
+    
+    popt, pcov = scipy.optimize.curve_fit(sinfunc,
+                                          tt,
+                                          yy,
+                                          p0=guess,
+                                          bounds = ((0, 2*np.pi*guess_freq/2, 0),
+                                                    (np.max(yy), 2*np.pi*guess_freq*2, 2*np.pi)
+                                                    )
+                                          )
+    A, w, p = popt
+    f = w/(2.*np.pi)
+    fitfunc = lambda t: A * np.sin(w*t + p)
+    period = 1./f
+    period = period*timedelta
+    rmse = np.sqrt((np.square(fitfunc(tt) - yy)).mean(axis=0))
+    result_dict = {"amp": A,
+                   "phase": p,
+                   "period": period,
+                   "rmse":rmse}
+    plt.rcParams['lines.linewidth'] = 1
+    plt.rcParams['lines.markersize'] = 1
+    plt.rcParams["figure.figsize"] = (16,4)
+    plt.plot(t, yy, '--o', color='k', label = 'data')
+    plt.plot(t, fitfunc(tt), color='red', label = 'fit')
+    plt.xlabel('Time (UTC)')
+    plt.ylabel('Cross-Shore Position (m)')
+    plt.xlim(min(t), max(t))
+    plt.ylim(min(yy), max(yy))
+    plt.minorticks_on()
+    plt.savefig(fig_save_path, dpi=300)
+    plt.close()
+    return result_dict
     
 def main_df(df,
             output_folder,
@@ -439,6 +481,11 @@ def main_df(df,
         autocorr_max, lag_max, autocorr_min, lag_min, autocorr, lags = plot_autocorrelation(output_folder,
                                                                                               name,
                                                                                               df_de_meaned)
+        sin_result = fit_sine(df_de_meaned.index,
+                              df_de_meaned['position'],
+                              lag_min,
+                              pd.Timedelta(new_timedelta),
+                              output_folder)
         approximate_entropy = compute_approximate_entropy(df_de_meaned['position'],
                                                           2,
                                                           np.std(df_de_meaned['position']))
@@ -465,8 +512,13 @@ def main_df(df,
         ##Step 5: De-mean the timeseries
         df_de_meaned = de_mean_timeseries(df_de_trend)
         autocorr_max, lag_max, autocorr_min, lag_min, autocorr, lags = plot_autocorrelation(output_folder,
-                                                                                              name,
-                                                                                              df_de_meaned)
+                                                                                            name,
+                                                                                            df_de_meaned)
+        sin_result = fit_sine(df_de_meaned.index,
+                              df_de_meaned['position'],
+                              lag_min,
+                              pd.Timedelta(new_timedelta),
+                              output_folder)
         approximate_entropy = compute_approximate_entropy(df_de_meaned['position'],
                                                           2,
                                                           np.std(df_de_meaned['position']))
@@ -501,7 +553,11 @@ def main_df(df,
                                   'new_timedelta':str(new_timedelta),
                                   'snr_no_nans':snr_no_nans,
                                   'snr_median_filter':snr_median_filter,
-                                  'approx_entropy':approximate_entropy}
+                                  'approx_entropy':approximate_entropy,
+                                  'period':sin_result['period'],
+                                  'amplitude':sin_result['amp'],
+                                  'phase':sin_result['phase'],
+                                  'sin_rmse':sin_result['rmse']}
 
     ##Save this dictionary to a csv
     result = os.path.join(output_folder, name+'tsa_result.csv')
@@ -575,6 +631,11 @@ def main(csv_path,
         autocorr_max, lag_max, autocorr_min, lag_min, autocorr, lags = plot_autocorrelation(output_folder,
                                                                                               name,
                                                                                               df_de_meaned)
+        sin_result = fit_sine(df_de_meaned.index,
+                              df_de_meaned['position'],
+                              lag_min,
+                              pd.Timedelta(new_timedelta),
+                              output_folder)
         approximate_entropy = compute_approximate_entropy(df_de_meaned['position'],
                                                           2,
                                                           np.std(df_de_meaned['position']))
@@ -601,8 +662,13 @@ def main(csv_path,
         ##Step 5: De-mean the timeseries
         df_de_meaned = de_mean_timeseries(df_de_trend)
         autocorr_max, lag_max, autocorr_min, lag_min, autocorr, lags = plot_autocorrelation(output_folder,
-                                                                                              name,
-                                                                                              df_de_meaned)
+                                                                                            name,
+                                                                                            df_de_meaned)
+        sin_result = fit_sine(df_de_meaned.index,
+                              df_de_meaned['position'],
+                              lag_min,
+                              pd.Timedelta(new_timedelta),
+                              output_folder)
         approximate_entropy = compute_approximate_entropy(df_de_meaned['position'],
                                                           2,
                                                           np.std(df_de_meaned['position']))
@@ -637,7 +703,11 @@ def main(csv_path,
                                   'new_timedelta':str(new_timedelta),
                                   'snr_no_nans':snr_no_nans,
                                   'snr_median_filter':snr_median_filter,
-                                  'approx_entropy':approximate_entropy}
+                                  'approx_entropy':approximate_entropy,
+                                  'period':sin_result['period'],
+                                  'amplitude':sin_result['amp'],
+                                  'phase':sin_result['phase'],
+                                  'sin_rmse':sin_result['rmse']}
 
     ##Save this dictionary to a csv
     result = os.path.join(output_folder, name+'tsa_result.csv')
@@ -657,7 +727,4 @@ def main(csv_path,
     output_df.to_csv(output_path)
     return timeseries_analysis_result
 
-
-
-    
 

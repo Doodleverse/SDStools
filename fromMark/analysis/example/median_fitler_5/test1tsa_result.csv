@@ -1,2 +1,0 @@
-stationary_bool,computed_trend,computed_intercept,trend_unc,intercept_unc,r_sq,autocorr_max,lag_max,autocorr_min,lag_min,new_timedelta,snr_no_nans,snr_median_filter,approx_entropy
-False,2.0480885755533595,-8.945206063191286,0.022758798485826716,0.525141874784306,0.9434955335987715,0.7793204692188397,30 days 00:00:00,0.6035264427472478,180 days 00:00:00,30 days 00:00:00,1.2593471353817367,1.3118020599166658,0.39950497944577745
