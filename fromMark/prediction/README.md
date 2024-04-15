@@ -129,6 +129,8 @@ random walk, rendering the rest of this exercise as useless. This might be due t
 	
 * You might have noticed that the plot showing predictions over the training and validation sections had anomalies marked. These were points in the timeseries that were far out of the prediction's confidence bounds. This could be useful for flagging anomalous events or bad data in our shoreline timeseries. I defined the anomalies by computing the absolute difference between the mean predictions and the obeserved data points, and then by flagging all points that were outside of that array of differences' 95% confidence interval. Anomaly detection could be a sensible use of NNs on timeseries data currently.
 
+* Another area this could be useful is interpolation of our shoreline data (filling in time gaps).
+
 * Take a look in the examples folder to see how using a less complex LSTM model (fewer hidden units) affects the results.
 
 # Before you use
