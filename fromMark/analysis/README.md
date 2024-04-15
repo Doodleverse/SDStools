@@ -1,4 +1,4 @@
-# SDStols/fromMark/analysis
+# SDStools/fromMark/analysis
 
 This will contain scripts for analysis tools for CoastSeg shoreline data.
 

@@ -50,11 +50,15 @@ def get_shoreline_data(transect_timeseries_path,
     ##importing data
     df = pd.read_csv(transect_timeseries_path)
     try:
-        new_df = pd.DataFrame({'date':pd.to_datetime(df['dates'], format='%Y-%m-%d %H:%M:%S+00:00'),
+        new_df = pd.DataFrame({'date':pd.to_datetime(df['date'], format='%Y-%m-%d %H:%M:%S+00:00'),
                                'position':df[transect_id]})
     except:
-        new_df = pd.DataFrame({'date':pd.to_datetime(df['dates'], format='%m/%d/%Y'),
-                       'position':df[transect_id]})
+        try:
+            new_df = pd.DataFrame({'date':pd.to_datetime(df['date'], format='%m/%d/%Y'),
+                           'position':df[transect_id]})
+        except:
+            new_df = pd.DataFrame({'date':pd.to_datetime(df['date'], format='%Y-%m-%d'),
+                           'position':df[transect_id]})           
 
     analysis_result, new_df, timedelta = stas.main_df(new_df,
                                                       folder,
@@ -390,6 +394,20 @@ def run(csv_path,
     sess = keras.backend.get_session()
     keras.backend.clear_session()
     sess.close()
+run(r'C:\MarkLundineSurface\doodleverse\SDStools\fromMark\analysis\example\test1.csv',
+    r'position',
+    'test1',
+    r'C:\MarkLundineSurface\doodleverse\SDStools\fromMark\prediction\example',
+    bootstrap=30,
+    num_prediction=100,
+    epochs=500,
+    units=8,
+    batch_size=32,
+    lookback=12,
+    split_percent=0.80,
+    median_filter_window=1,
+    which_timedelta='custom',
+    timedelta='30D')
 
 ##Uncomment to run script from command line
 ##if __name__ == "__main__":

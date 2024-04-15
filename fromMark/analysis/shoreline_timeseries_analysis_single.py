@@ -371,7 +371,21 @@ def make_plots(output_folder,
         plt.tight_layout()
         plt.savefig(fig_save, dpi=300)
         plt.close()
-        
+
+def get_seasonal_amplitude(df, lag):
+    """
+    Gets the mean amplitude of the seasonaility
+    inputs:
+    df (pandas DataFrame): shoreline timeseries data
+    lag (timedelta): period of the seasonality
+    outputs:
+    amplitudes (numpy array): all of the amplitudes
+    mean_amplitude:
+    sd_amplitude:
+    """
+    
+
+    
 def main_df(df,
             output_folder,
             name,
