@@ -65,7 +65,7 @@ This screenshot shows numeric results from our analysis steps. What did we learn
 * The noise value added to the original timeseries was normally distributed between -10 m and 10 m, so an RMSE of 4.55 m, or about 5 m is about right.
 * So in this case, we estimated the trend, the seasonal period, the seasonal amplitude, and the noise pretty well.
 * More time gaps and more noise would obviously make this more difficult. As would having weaker trends and weaker seasonal amplitudes (see below figure constructed from synthetic timeseries with varied trends, noise, seasonal amplitudes, data gaps, and timespacing).
-![correlationplot](Correlation_Coefficients_plot.png)
+![correlationplot](corr_coef_plot.png)
 
 * Realize that this idealized timeseries is not how actual shoreline timeseries are. This synthetic shoreline timeseries was defined as a simple additive linear combination of a linear trend, a yearly cycle, and some random noise, allowing us to make some assumptions for the analysis steps we performed.
 * For real data, these assumptions could show to be very wrong/flawed, for several possible reasons:
