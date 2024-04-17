@@ -128,7 +128,7 @@ the timeseries as non-stationary (there is a temporal trend).
 	* 'trend_unc': the standard error of the linear trend estimate, m/year
 	* 'intercept_unc': the standard of error of the intercept estimate, m
 	* 'r_sq': the r^2 value from the linear trend estimation, unitless
-	* 'autocorr_max': the maximum value from the autocorrelation estimation, this code computes the maximum of the absolute value of the 			autocorrelation
+	* 'autocorr_max': the maximum value from the autocorrelation estimation, this code computes the maximum of the absolute value of the autocorrelation
 	* 'lag_max': the lag that corresponds to the maximum of the autocorrelation, something of note here: if you are computing autocorrelation on
 	* 'autocorr_min': the second largest autocorrelation value
 	* 'lag_min': the lag that corresponds to the second largest autocorrelation value
@@ -137,6 +137,10 @@ the timeseries as non-stationary (there is a temporal trend).
 	* 'snr_no_nans': a crude estimate of signal-to-noise ratio, here I just did the mean of the timeseries divided by the standard deviation
 	* 'snr_median_filter': same estimate of signal-to-noise, but performed after the median filter is applied
 	* 'approx_entropy': entropy estimate, values closer to 0 indicate predicatibility, values closer to 1 indicate disorder
+	* 'period': period of the sin wave fit
+	* 'phase': phase of the sin wave fit
+	* 'sin_rmse': root mean squared error of the sin wave fit (so fit compared with de-trended and de-meaned timeseries)
+	* 'sin_error_max': maximum error of the sin wave fit
 
 main_df will take as input a pandas dataframe instead of a path to a csv. 
 It will output the result dictionary, the resampled pandas dataframe, and the new timedelta.

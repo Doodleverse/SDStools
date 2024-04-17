@@ -410,10 +410,12 @@ def fit_sine(t, y, lag, timedelta, output_folder):
     period = 1./f
     period = period*timedelta
     rmse = np.sqrt((np.square(fitfunc(tt) - yy)).mean(axis=0))
+    error_max = max(np.abs(fitfunc(tt)-yy))
     result_dict = {"amp": A,
                    "phase": p,
                    "period": period,
-                   "rmse":rmse}
+                   "rmse":rmse,
+                   "error_max":error_max}
     plt.rcParams['lines.linewidth'] = 1
     plt.rcParams['lines.markersize'] = 1
     plt.rcParams["figure.figsize"] = (16,4)
@@ -481,11 +483,19 @@ def main_df(df,
         autocorr_max, lag_max, autocorr_min, lag_min, autocorr, lags = plot_autocorrelation(output_folder,
                                                                                               name,
                                                                                               df_de_meaned)
-        sin_result = fit_sine(df_de_meaned.index,
-                              df_de_meaned['position'],
-                              lag_min,
-                              pd.Timedelta(new_timedelta),
-                              output_folder)
+        try:
+            sin_result = fit_sine(df_de_meaned.index,
+                                  df_de_meaned['position'],
+                                  lag_min,
+                                  pd.Timedelta(new_timedelta),
+                                  output_folder)
+        except:
+            sin_result = {'period':np.nan,
+                          'amp':np.nan,
+                          'phase':np.nan,
+                          'rmse':np.nan,
+                          'error_max':np.nan
+                          }
         approximate_entropy = compute_approximate_entropy(df_de_meaned['position'],
                                                           2,
                                                           np.std(df_de_meaned['position']))
@@ -514,11 +524,19 @@ def main_df(df,
         autocorr_max, lag_max, autocorr_min, lag_min, autocorr, lags = plot_autocorrelation(output_folder,
                                                                                             name,
                                                                                             df_de_meaned)
-        sin_result = fit_sine(df_de_meaned.index,
-                              df_de_meaned['position'],
-                              lag_min,
-                              pd.Timedelta(new_timedelta),
-                              output_folder)
+        try:
+            sin_result = fit_sine(df_de_meaned.index,
+                                  df_de_meaned['position'],
+                                  lag_min,
+                                  pd.Timedelta(new_timedelta),
+                                  output_folder)
+        except:
+            sin_result = {'period':np.nan,
+                          'amp':np.nan,
+                          'phase':np.nan,
+                          'rmse':np.nan,
+                          'error_max':np.nan
+                          }
         approximate_entropy = compute_approximate_entropy(df_de_meaned['position'],
                                                           2,
                                                           np.std(df_de_meaned['position']))
@@ -557,7 +575,8 @@ def main_df(df,
                                   'period':sin_result['period'],
                                   'amplitude':sin_result['amp'],
                                   'phase':sin_result['phase'],
-                                  'sin_rmse':sin_result['rmse']}
+                                  'sin_rmse':sin_result['rmse'],
+                                  'sin_error_max':sin_result['error_max']}
 
     ##Save this dictionary to a csv
     result = os.path.join(output_folder, name+'tsa_result.csv')
@@ -629,13 +648,21 @@ def main(csv_path,
     if stationary_bool == True:
         df_de_meaned = de_mean_timeseries(df_med_filt)
         autocorr_max, lag_max, autocorr_min, lag_min, autocorr, lags = plot_autocorrelation(output_folder,
-                                                                                              name,
-                                                                                              df_de_meaned)
-        sin_result = fit_sine(df_de_meaned.index,
-                              df_de_meaned['position'],
-                              lag_min,
-                              pd.Timedelta(new_timedelta),
-                              output_folder)
+                                                                                            name,
+                                                                                            df_de_meaned)
+        try:
+            sin_result = fit_sine(df_de_meaned.index,
+                                  df_de_meaned['position'],
+                                  lag_min,
+                                  pd.Timedelta(new_timedelta),
+                                  output_folder)
+        except:
+            sin_result = {'period':np.nan,
+                          'amp':np.nan,
+                          'phase':np.nan,
+                          'rmse':np.nan,
+                          'error_max':np.nan
+                          }
         approximate_entropy = compute_approximate_entropy(df_de_meaned['position'],
                                                           2,
                                                           np.std(df_de_meaned['position']))
@@ -664,11 +691,19 @@ def main(csv_path,
         autocorr_max, lag_max, autocorr_min, lag_min, autocorr, lags = plot_autocorrelation(output_folder,
                                                                                             name,
                                                                                             df_de_meaned)
-        sin_result = fit_sine(df_de_meaned.index,
-                              df_de_meaned['position'],
-                              lag_min,
-                              pd.Timedelta(new_timedelta),
-                              output_folder)
+        try:
+            sin_result = fit_sine(df_de_meaned.index,
+                                  df_de_meaned['position'],
+                                  lag_min,
+                                  pd.Timedelta(new_timedelta),
+                                  output_folder)
+        except:
+            sin_result = {'period':np.nan,
+                          'amp':np.nan,
+                          'phase':np.nan,
+                          'rmse':np.nan,
+                          'error_max':np.nan
+                          }
         approximate_entropy = compute_approximate_entropy(df_de_meaned['position'],
                                                           2,
                                                           np.std(df_de_meaned['position']))
@@ -707,7 +742,8 @@ def main(csv_path,
                                   'period':sin_result['period'],
                                   'amplitude':sin_result['amp'],
                                   'phase':sin_result['phase'],
-                                  'sin_rmse':sin_result['rmse']}
+                                  'sin_rmse':sin_result['rmse'],
+                                  'sin_error_max':sin_result['error_max']}
 
     ##Save this dictionary to a csv
     result = os.path.join(output_folder, name+'tsa_result.csv')
