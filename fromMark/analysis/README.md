@@ -1,6 +1,6 @@
 # SDStools/fromMark/analysis
 
-This will contain scripts for analysis tools for CoastSeg shoreline data.
+This will contain scripts for analysis tools for CoastSeg shoreline data. I encourage others to take a look at the code or my thoughts here and offer some insight. 
 
 # Explanation with synthetic timeseries
 
@@ -38,6 +38,8 @@ Let's put this data through some timeseries analysis steps.
 
 8. Use information from the autocorrelation to fit a sine wave to our de-trended and de-meaned data, estimating the seasonal amplitude, phase, and frequency/period.
 
+9. Subtract out the sinusoid fit and estimate the amount of noise.
+
 Here's what the results of these steps would show:
 
 ![timeseries_analysis](example/test1timeseries.png)
@@ -63,7 +65,15 @@ This screenshot shows numeric results from our analysis steps. What did we learn
 * The noise value added to the original timeseries was normally distributed between -10 m and 10 m, so an RMSE of 4.55 m, or about 5 m is about right.
 * So in this case, we estimated the trend, the seasonal period, the seasonal amplitude, and the noise pretty well.
 * More time gaps and more noise would obviously make this more difficult. As would having weaker trends and weaker seasonal amplitudes.
+* Realize that this idealized timeseries is not how actual shoreline timeseries are. This synthetic shoreline timeseries was defined as a simple additive linear combination of a linear trend, a yearly cycle, and some random noise, allowing us to make some assumptions for the analysis steps we performed.
+* For real data, these assumptions could show to be very wrong/flawed, for several possible reasons:
+1. Our shoreline timeseries measurements could have high uncertainty. What many call "error". 
+2. Our shoreline timeseries could have low uncertainty but could be nonlinear.
+3. Our shoreline timeseries could have low uncertainty but could be white noise (totally random) or random walks (random walks are somewhat predictable if you use the last known value to predict the next value, but think about how useful that is--if it's raining right now, then it will be raining in a minute).
 
+I advise caution when applying explanatory timeseries analysis methods--sometimes the assumptions being made about the data are wrong which negates a lot of meaning from the analysis results. Explanatory analysis can give us an idea of what's going on, which is useful for analyzing historical data, but usually cannot decipher the whole picture.
+
+I advise $great$ caution when applying predictive/forecasting timeseries methods (ARIMA), particularly ones of higher complexity (e.g., neural networks). See SDSTools/fromMark/prediction for more on this topic.
 
 # shoreline_timeseries_analysis_single.py
 
