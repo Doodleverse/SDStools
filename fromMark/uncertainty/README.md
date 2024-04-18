@@ -14,4 +14,6 @@ It would be nice to have a way of estimating this without doing a comparison of 
 
 $$\sigma^2 = \sigma^{2}_{satellite} + \sigma^{2}_{method} + \sigma^{2}_{physics}$$
 
+$\sigma$
+
 Maybe we could formulate this as a regression problem??
