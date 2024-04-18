@@ -12,6 +12,6 @@ We should come up with a way to propogate uncertainty so that we can get uncerta
 
 It would be nice to have a way of estimating this without doing a comparison of satellite-derived shorelines to other datasets. This method requires validation data everywhere we run the models.
 
-$$\sigma^2 = \sigma_{satellite}^2 + sigma_{method}^2 + sigma_{physics}^2 $$
+$$\sigma^2 = \sigma_{satellite}^2 + \sigma_{method}^2 + \sigma_{physics}^2 $$
 
 Maybe we could formulate this as a regression problem??
