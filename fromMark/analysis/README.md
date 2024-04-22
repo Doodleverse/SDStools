@@ -64,7 +64,9 @@ This screenshot shows numeric results from our analysis steps. What did we learn
 * This led us to estimating a best fit sin wave with an amplitude of 7.5 m, a period of just under 365 days, and an RMSE of 4.55 m. 
 * The noise value added to the original timeseries was normally distributed between -10 m and 10 m, so an RMSE of 4.55 m, or about 5 m is about right.
 * So in this case, we estimated the trend, the seasonal period, the seasonal amplitude, and the noise pretty well.
-* More time gaps and more noise would obviously make this more difficult. As would having weaker trends and weaker seasonal amplitudes.
+* More time gaps and more noise would obviously make this more difficult. As would having weaker trends and weaker seasonal amplitudes (see below figure constructed from synthetic timeseries with varied trends, noise, seasonal amplitudes, data gaps, and timespacing).
+![correlationplot](corr_coef_plot.png)
+
 * Realize that this idealized timeseries is not how actual shoreline timeseries are. This synthetic shoreline timeseries was defined as a simple additive linear combination of a linear trend, a yearly cycle, and some random noise, allowing us to make some assumptions for the analysis steps we performed.
 * For real data, these assumptions could show to be very wrong/flawed, for several possible reasons:
 1. Our shoreline timeseries measurements could have high uncertainty. What many call "error". 
@@ -128,7 +130,7 @@ the timeseries as non-stationary (there is a temporal trend).
 	* 'trend_unc': the standard error of the linear trend estimate, m/year
 	* 'intercept_unc': the standard of error of the intercept estimate, m
 	* 'r_sq': the r^2 value from the linear trend estimation, unitless
-	* 'autocorr_max': the maximum value from the autocorrelation estimation, this code computes the maximum of the absolute value of the 			autocorrelation
+	* 'autocorr_max': the maximum value from the autocorrelation estimation, this code computes the maximum of the absolute value of the autocorrelation
 	* 'lag_max': the lag that corresponds to the maximum of the autocorrelation, something of note here: if you are computing autocorrelation on
 	* 'autocorr_min': the second largest autocorrelation value
 	* 'lag_min': the lag that corresponds to the second largest autocorrelation value
@@ -137,6 +139,10 @@ the timeseries as non-stationary (there is a temporal trend).
 	* 'snr_no_nans': a crude estimate of signal-to-noise ratio, here I just did the mean of the timeseries divided by the standard deviation
 	* 'snr_median_filter': same estimate of signal-to-noise, but performed after the median filter is applied
 	* 'approx_entropy': entropy estimate, values closer to 0 indicate predicatibility, values closer to 1 indicate disorder
+	* 'period': period of the sin wave fit
+	* 'phase': phase of the sin wave fit
+	* 'sin_rmse': root mean squared error of the sin wave fit (so fit compared with de-trended and de-meaned timeseries)
+	* 'sin_error_max': maximum error of the sin wave fit
 
 main_df will take as input a pandas dataframe instead of a path to a csv. 
 It will output the result dictionary, the resampled pandas dataframe, and the new timedelta.
