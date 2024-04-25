@@ -12,9 +12,10 @@ import scipy
 from scipy import stats, signal
 import pandas as pd
 from statsmodels.tsa.stattools import adfuller
+import HampelFilter.hampel_filter as hampel_filter
 import os
 import csv
-
+    
 
 def adf_test(timeseries):
     """
@@ -45,6 +46,18 @@ def adf_test(timeseries):
         stationary_bool = False
     return stationary_bool
 
+def hampel_filter_df(df, hampel_window, hampel_sigma):
+    """
+    Applies a Hampel Filter
+    """
+    vals = df['position'].values
+    outlier_idxes = hampel_filter(vals, hampel_window, hampel_sigma)
+    vals[outlier_idxes] = np.nan
+    new_df = pd.DataFrame({'posiiton':vals},
+                          index=df.index
+                          )
+    return new_df
+    
 def median_filter(df, window):
     """
     Applies a median filter with specified window length
@@ -435,6 +448,8 @@ def main_df(df,
             name,
             which_timedelta,
             median_filter_window=3,
+            hampel_window=3,
+            hampel_sigma=3,
             timedelta=None):
     """
     Timeseries analysis for satellite shoreline data
@@ -448,6 +463,9 @@ def main_df(df,
     output_folder (str): path to save outputs to
     name (str): name to give this analysis run
     which_timedelta (str): 'minimum' 'average' or 'maximum' or 'custom', this is what the timeseries is resampled at
+    median_filter_window (int): default is 3, this is the window length for the median filter, change this to 1 to turn this filter off
+    hampel_window (int): default is 3, this is the window length for the Hampel filter, change this to 1 to turn this filter off
+    hampel_sigma (int): default is 3, threshold for outlier detection, a real scalar greater than or equal to 0. change to 0 to this filter off
     timedelta (str, optional): the custom time spacing (e.g., '30D' is 30 days)
     beware of choosing minimum, with a mix of satellites, the minimum time spacing can be so low that you run into fourier transform problems
     outputs:
@@ -461,22 +479,25 @@ def main_df(df,
         new_timedelta = compute_time_delta(df, which_timedelta)
     else:
         new_timedelta=timedelta
-    
-    ##Step 3: Resample timeseries to the maximum timedelta
-    df_resampled = resample_timeseries(df, new_timedelta)
 
-    ##Step 4: Fill NaNs
+    ##Step 3: Outlier Removal with Hampel Filter
+    df_hampel = hampel_filter_df(df, hampel_window, hampel_sigma)
+    
+    ##Step 4: Resample timeseries to the new timedelta
+    df_resampled = resample_timeseries(df_hampel, new_timedelta)
+
+    ##Step 5: Fill NaNs
     df_no_nans = fill_nans(df_resampled)
     snr_no_nans = np.abs(np.mean(df_no_nans['position']))/np.std(df_no_nans['position'])
 
-    ##Step 5: Median Filter
+    ##Step 6: Median Filter
     df_med_filt = median_filter(df_no_nans, median_filter_window)
     snr_median_filter = np.abs(np.mean(df_med_filt['position']))/np.std(df_med_filt['position'])
     
-    ##Step 5: Check for stationarity with ADF test
+    ##Step 7: Check for stationarity with ADF test
     stationary_bool = adf_test(df_med_filt['position'])
     
-    ##Step 6a: If timeseries stationary, de-mean, compute autocorrelation and approximate entropy
+    ##Step 8a: If timeseries stationary, de-mean, compute autocorrelation and approximate entropy
     ##Then make plots
     if stationary_bool == True:
         df_de_meaned = de_mean_timeseries(df_med_filt)
@@ -513,7 +534,7 @@ def main_df(df,
         intercept_stderr = np.nan
         r_sq = np.nan
         
-    ##Step 6b: If timeseries non-stationary, compute trend, de-trend, de-mean, compute autocorrelation and approximate entropy
+    ##Step 8b: If timeseries non-stationary, compute trend, de-trend, de-mean, compute autocorrelation and approximate entropy
     ##Then make plots
     else:
         trend_result, x = get_linear_trend(df_med_filt)
@@ -601,6 +622,8 @@ def main(csv_path,
          name,
          which_timedelta,
          median_filter_window=3,
+         hampel_window=3,
+         hampel_sigma=3,
          timedelta=None):
     """
     Timeseries analysis for satellite shoreline data
@@ -614,6 +637,9 @@ def main(csv_path,
     output_folder (str): path to save outputs to
     name (str): name to give this analysis run
     which_timedelta (str): 'minimum' 'average' or 'maximum' or 'custom', this is what the timeseries is resampled at
+    median_filter_window (int): default is 3, this is the window length for the median filter, change this to 1 to turn this filter off
+    hampel_window (int): default is 3, this is the window length for the Hampel filter, change this to 1 to turn this filter off
+    hampel_sigma (int): default is 3, threshold for outlier detection, a real scalar greater than or equal to 0. change to 0 to this filter off
     timedelta (str, optional): the custom time spacing (e.g., '30D' is 30 days)
     beware of choosing minimum, with a mix of satellites, the minimum time spacing can be so low that you run into fourier transform problems
     outputs:
@@ -628,22 +654,25 @@ def main(csv_path,
         new_timedelta = compute_time_delta(df, which_timedelta)
     else:
         new_timedelta=timedelta
-    
-    ##Step 3: Resample timeseries to the maximum timedelta
-    df_resampled = resample_timeseries(df, new_timedelta)
 
-    ##Step 4: Fill NaNs
+    ##Step 3: Outlier Removal with Hampel Filter
+    df_hampel = hampel_filter_df(df, hampel_window, hampel_sigma)
+    
+    ##Step 4: Resample timeseries to the new timedelta
+    df_resampled = resample_timeseries(df_hampel, new_timedelta)
+
+    ##Step 6: Fill NaNs
     df_no_nans = fill_nans(df_resampled)
     snr_no_nans = np.abs(np.mean(df_no_nans['position']))/np.std(df_no_nans['position'])
 
-    ##Step 5: Median Filter
+    ##Step 6: Median Filter
     df_med_filt = median_filter(df_no_nans, median_filter_window)
     snr_median_filter = np.abs(np.mean(df_med_filt['position']))/np.std(df_med_filt['position'])
     
-    ##Step 5: Check for stationarity with ADF test
+    ##Step 7: Check for stationarity with ADF test
     stationary_bool = adf_test(df_med_filt['position'])
     
-    ##Step 6a: If timeseries stationary, de-mean, compute autocorrelation and approximate entropy
+    ##Step 8a: If timeseries stationary, de-mean, compute autocorrelation and approximate entropy
     ##Then make plots
     if stationary_bool == True:
         df_de_meaned = de_mean_timeseries(df_med_filt)
@@ -680,7 +709,7 @@ def main(csv_path,
         intercept_stderr = np.nan
         r_sq = np.nan
         
-    ##Step 6b: If timeseries non-stationary, compute trend, de-trend, de-mean, compute autocorrelation and approximate entropy
+    ##Step 8b: If timeseries non-stationary, compute trend, de-trend, de-mean, compute autocorrelation and approximate entropy
     ##Then make plots
     else:
         trend_result, x = get_linear_trend(df_med_filt)
