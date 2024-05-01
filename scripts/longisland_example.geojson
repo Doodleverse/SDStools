@@ -1,0 +1,8 @@
+{
+"type": "FeatureCollection",
+"name": "longisland_bathy",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "fid": 1 }, "geometry": { "type": "Polygon", "coordinates": [ [ [ -74.296738960773581, 40.206227669852602 ], [ -74.248496413506743, 41.004662830886296 ], [ -71.775261823625996, 41.062887542975908 ], [ -71.804207351986108, 40.238151685503333 ], [ -74.296738960773581, 40.206227669852602 ] ] ] } }
+]
+}

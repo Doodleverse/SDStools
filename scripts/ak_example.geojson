@@ -1,0 +1,8 @@
+{
+"type": "FeatureCollection",
+"name": "ak_example",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "fid": 1 }, "geometry": { "type": "Polygon", "coordinates": [ [ [ -161.696153759224757, 64.437783862145182 ], [ -160.805274719696826, 64.446109086131855 ], [ -160.876030455688181, 64.052079199793212 ], [ -161.676856740318016, 64.049264561768922 ], [ -161.696153759224757, 64.437783862145182 ] ] ] } }
+]
+}
