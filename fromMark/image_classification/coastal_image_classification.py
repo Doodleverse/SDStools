@@ -148,7 +148,7 @@ def sort_images(inference_df_path,
     for i in range(len(inference_df)):
         input_image_path = inference_df['im_paths'].iloc[i]
         im_name = os.path.basename(input_image_path) 
-        if file['im_classes'].iloc[i] = 'good':
+        if file['im_classes'].iloc[i] == 'good':
             output_image_path = os.path.join(good_dir, im_name)
         else:
             output_image_path = os.path.join(bad_dir, im_name)
@@ -221,7 +221,7 @@ def sort_images(inference_df_path,
     for i in range(len(inference_df)):
         input_image_path = inference_df['im_paths'].iloc[i]
         im_name = os.path.basename(input_image_path) 
-        if file['im_classes'].iloc[i] = 'good':
+        if file['im_classes'].iloc[i] == 'good':
             output_image_path = os.path.join(good_dir, im_name)
         else:
             output_image_path = os.path.join(bad_dir, im_name)
