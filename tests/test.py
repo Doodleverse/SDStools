@@ -3,43 +3,59 @@
 ##### WORK IN PROGRESS - NOTHING TO SEE HERE YET
 
 ### a test of some functions
-from src.SDStools import io 
-from src.SDStools import interpolation 
-from src.SDStools import filter
+from sdstools import io 
+from sdstools import interpolation 
+from sdstools import filter
 # from src.SDStools import viz
-from src.SDStools import detrend
+from sdstools import detrend
 import numpy as np
 import os
 import pandas as pd
+import matplotlib.pyplot as plt
 
-csv_file = '/example_data/transect_time_series_coastsat.csv'
+csv_file = '/media/marda/TWOTB/USGS/Doodleverse/github/SDStools/example_data/elwha_mainROI_df_distances_by_time_and_transect_CoastSat.csv'
 
 ### input files
-cs_file = os.path.normpath(os.getcwd()+csv_file)
+cs_file = os.path.normpath(csv_file)
 cs_data_matrix, cs_dates_vector, cs_transects_vector = io.read_merged_transect_time_series_file(cs_file)
 
 
-hampel_method = 2
+iterations = 5
+windowPerc   = .05
+
+orig = cs_data_matrix.copy()
 
 cs_data_matrix_outliers_removed = cs_data_matrix.copy()
-for k in range(cs_data_matrix.shape[0]):
-    SDS_timeseries = cs_data_matrix[k,:]
-    if hampel_method==1:
-        outliers = filter.hampel_filter(SDS_timeseries, window_size=5, n_sigma=3) 
-    else:
-        outliers = filter.hampel_filter_matlab(SDS_timeseries, NoSTDsRemoved = 3, iterations   = 5, windowPerc   = .05)
+for k in range(orig.shape[0]):
+    SDS_timeseries = orig[k,:]
+    try:
+        outliers = filter.hampel_filter(SDS_timeseries, window_size=int(windowPerc * len(SDS_timeseries)), n_sigma=2) 
+    except:
+        outliers = filter.hampel_filter(SDS_timeseries, window_size=1+int(windowPerc * len(SDS_timeseries)), n_sigma=2) 
+
+    # outliers = filter.hampel_filter_matlab(SDS_timeseries, NoSTDsRemoved = 3, iterations   = 5, windowPerc   = .05)
+    # print(len(outliers))
     cs_data_matrix_outliers_removed[k,outliers] = np.nan 
 
 
-    df = pd.DataFrame(cs_data_matrix_outliers_removed.T,columns=cs_transects_vector)
-    df.set_index(cs_dates_vector)
-    df.to_csv(csv_file.replace(".csv","_nooutliers.csv"))
 
-    plt.subplot(121)
-    plt.imshow(cs_data_matrix)
-    plt.subplot(122)
-    plt.imshow(cs_data_matrix_outliers_removed)
-    plt.show()
+
+# cs_data_matrix_outliers_removed[np.isnan(cs_data_matrix)] = np.nan
+
+num_outliers_removed = np.sum(np.isnan(cs_data_matrix_outliers_removed)) -  np.sum(np.isnan(cs_data_matrix))
+print(f"Outliers removed: {num_outliers_removed}")
+print(f"Outliers removed percent: {100*(num_outliers_removed/np.prod(np.shape(cs_data_matrix_outliers_removed)))}")
+
+
+df = pd.DataFrame(cs_data_matrix_outliers_removed.T,columns=cs_transects_vector)
+df.set_index(cs_dates_vector)
+df.to_csv(csv_file.replace(".csv","_nooutliers.csv"))
+
+plt.subplot(121)
+plt.imshow(cs_data_matrix)
+plt.subplot(122)
+plt.imshow(cs_data_matrix_outliers_removed)
+plt.show()
 
 
 ######################## impute

@@ -79,7 +79,7 @@ def main():
 
     req = bathyreq.BathyRequest()
     data, lonvec, latvec = req.get_area(
-        longitude=[minlon, maxlon], latitude=[minlat, maxlat] )
+        longitude=[minlon, maxlon], latitude=[minlat, maxlat] , size = [size_x, size_y])
 
     # Combine the lower and upper range of the terrain colormap with a gap in the middle
     # to let the coastline appear more prominently.
