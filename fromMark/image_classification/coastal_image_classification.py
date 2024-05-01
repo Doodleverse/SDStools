@@ -132,7 +132,7 @@ def train_model(model,
     return model, history, ckpt_file
 
 def sort_images(inference_df_path,
-                inference_images_path,
+                output_folder
                 ):
     """
     Uses model results to sort images into good and bad folders
@@ -140,8 +140,8 @@ def sort_images(inference_df_path,
     inference_df_path (str): path to the model result csv
     inference_images_path (str): path to the directory containing images model was run on
     """
-    bad_dir = os.path.join(inference_images_path, 'bad')
-    good_dir = os.path.join(inference_images_path, 'good')
+    bad_dir = os.path.join(output_folder, 'bad')
+    good_dir = os.path.join(output_folder, 'good')
     dirs = [bad_dir, good_dir]
     for d in dirs:
         try:
@@ -202,7 +202,7 @@ def run_inference(path_to_model_ckpt,
                        'im_scores':im_scores})
     df.to_csv(result_path)
     sort_images(result_path,
-                path_to_inference_imgs)
+                output_folder)
     return result_path
 
 def sort_images(inference_df_path,
@@ -291,16 +291,7 @@ def training(path_to_training_data,
     
 
 
-##training(os.path.join(os.getcwd(),'sorted','train'),
-##         os.getcwd(),
-##         epochs=100)    
-##    
-##run_inference(os.path.join(os.getcwd(), 'models', 'model_16.keras'),
-##              os.path.join(os.getcwd(), 'sorted', 'test', 'bad'),
-##              os.path.join(os.getcwd(), 'test_results'),
-##              (128, 128),
-##              os.path.join(os.getcwd(), 'test_results_bad.csv'))    
-##    
+       
 
 
 
