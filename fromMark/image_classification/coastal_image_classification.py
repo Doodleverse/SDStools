@@ -6,10 +6,12 @@ adapted from https://keras.io/examples/vision/image_classification_from_scratch/
 import os
 import numpy as np
 import glob
+import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 import pandas as pd
 import shutil
+import matplotlib.pyplot as plt
 
 def load_dataset(training_data_directory,
                  image_size,
@@ -21,13 +23,13 @@ def load_dataset(training_data_directory,
     returns:
     train_ds, val_ds
     """
-    train_ds, val_ds = keras.utils.image_dataset_from_directory(training_data_directory,
-                                                                validation_split=0.2,
-                                                                subset="both",
-                                                                seed=1337,
-                                                                image_size=image_size,
-                                                                batch_size=batch_size
-                                                                )
+    train_ds, val_ds = tf.keras.preprocessing.image_dataset_from_directory(training_data_directory,
+                                                                        validation_split=0.2,
+                                                                        subset="both",
+                                                                        seed=1337,
+                                                                        image_size=image_size,
+                                                                        batch_size=batch_size
+                                                                        )
     return train_ds, val_ds
 
 def data_augmentation(images):
@@ -37,7 +39,9 @@ def data_augmentation(images):
     data_augmentation_layers = [
         layers.RandomFlip("horizontal"),
         layers.RandomFlip("vertical"),
-        layers.RandomRotation(0.1),
+        layers.RandomRotation(0.25),
+        layers.RandomZoom(0.5, 0.5),
+        
     ]
     return images
 
@@ -108,11 +112,11 @@ def train_model(model,
     model_folder (str): path to save the model to
     epochs (int, optional): number of epochs to train for
     """
-    model = make_model(input_shape=image_size + (3,), num_classes=2)
+    model = define_model(input_shape=image_size + (3,), num_classes=2)
     keras.utils.plot_model(model, show_shapes=True)
     ckpt_file = os.path.join(model_folder, "model_{epoch}.keras")
     epochs = 25
-    early_stopping_callback = keras.callbacks.EarlyStopping(monitor='val_loss', patience=100, mode='auto', restore_best_weights=True)
+    early_stopping_callback = keras.callbacks.EarlyStopping(monitor='val_loss', patience=3, mode='auto', restore_best_weights=True)
     callbacks = [keras.callbacks.ModelCheckpoint(ckpt_file),
                  early_stopping_callback
                  ]
@@ -173,32 +177,32 @@ def run_inference(path_to_model_ckpt,
     result_path (str): csv path of saved results
     """
     model = keras.saving.load_model(path_to_model_ckpt)
-    im_paths = glob.glob(path_to_inference_imgs+'\*.jpg')
+    im_paths = glob.glob(path_to_inference_imgs+'/*.jpg')
     im_classes = [None]*len(im_paths)
     im_scores = [None]*len(im_paths)
     i=0
     for im_path in im_paths:
-        img = keras.utils.load_img(img, target_size=image_size)
+        img = keras.utils.load_img(im_path, target_size=image_size)
         img_array = keras.utils.img_to_array(img)
-        img_array = keras.ops.expand_dims(img_array, 0)
+        img_array = tf.expand_dims(img_array, 0)
         predictions = model.predict(img_array)
-        score = float(keras.ops.sigmoid(predictions[0][0]))
-        good_score = 1 - score
-        bad_score = score
+        score = float(keras.activations.sigmoid(predictions[0][0]))
+        good_score = score
+        bad_score = 1 - score
         if good_score>bad_score:
             im_classes[i] = 'good'
             im_scores[i] = good_score
         else:
             im_classes[i] = 'bad'
             im_scores[i] = bad_score
-
+        i=i+1
     ##save results to a csv
     df = pd.DataFrame({'im_paths':im_paths,
                        'im_classes':im_classes,
                        'im_scores':im_scores})
     df.to_csv(result_path)
     sort_images(result_path,
-                path_to_inference_images)
+                path_to_inference_imgs)
     return result_path
 
 def sort_images(inference_df_path,
@@ -221,7 +225,7 @@ def sort_images(inference_df_path,
     for i in range(len(inference_df)):
         input_image_path = inference_df['im_paths'].iloc[i]
         im_name = os.path.basename(input_image_path) 
-        if file['im_classes'].iloc[i] == 'good':
+        if inference_df['im_classes'].iloc[i] == 'good':
             output_image_path = os.path.join(good_dir, im_name)
         else:
             output_image_path = os.path.join(bad_dir, im_name)
@@ -267,9 +271,9 @@ def training(path_to_training_data,
         pass
 
     ##Setting image size for model and loading datasets
-    image_size = (256, 256)
+    image_size = (128, 128)
     train_ds, val_ds = load_dataset(path_to_training_data,
-                                    image_shape,
+                                    image_size,
                                     32)
 
     ##Defining and then training model
@@ -287,10 +291,16 @@ def training(path_to_training_data,
     
 
 
-    
-    
-    
-    
+##training(os.path.join(os.getcwd(),'sorted','train'),
+##         os.getcwd(),
+##         epochs=100)    
+##    
+##run_inference(os.path.join(os.getcwd(), 'models', 'model_16.keras'),
+##              os.path.join(os.getcwd(), 'sorted', 'test', 'bad'),
+##              os.path.join(os.getcwd(), 'test_results'),
+##              (128, 128),
+##              os.path.join(os.getcwd(), 'test_results_bad.csv'))    
+##    
 
 
 
