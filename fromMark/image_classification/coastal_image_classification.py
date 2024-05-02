@@ -113,8 +113,8 @@ def train_model(model,
     epochs (int, optional): number of epochs to train for
     """
     model = define_model(input_shape=image_size + (3,), num_classes=2)
-    keras.utils.plot_model(model, show_shapes=True)
-    ckpt_file = os.path.join(model_folder, "model_{epoch}.keras")
+    keras.utils.plot_model(model, to_file=os.path.join(model_folder, 'model_graph.png'), show_shapes=True)
+    ckpt_file = os.path.join(model_folder, "model_{epoch}.h5")
     epochs = 25
     early_stopping_callback = keras.callbacks.EarlyStopping(monitor='val_loss', patience=3, mode='auto', restore_best_weights=True)
     callbacks = [keras.callbacks.ModelCheckpoint(ckpt_file),
@@ -122,7 +122,10 @@ def train_model(model,
                  ]
     model.compile(optimizer=keras.optimizers.Adam(3e-4),
                   loss=keras.losses.BinaryCrossentropy(from_logits=True),
-                  metrics=[keras.metrics.BinaryAccuracy(name="acc")]
+                  metrics=[keras.metrics.BinaryAccuracy(name="acc"),
+                           keras.metrics.Precision(name='precision'),
+                           keras.metrics.Recall(name='recall')
+                           ]
                   )
     history = model.fit(train_ds,
                         epochs=epochs,
@@ -132,90 +135,16 @@ def train_model(model,
     return model, history, ckpt_file
 
 def sort_images(inference_df_path,
-                output_folder
-                ):
-    """
-    Uses model results to sort images into good and bad folders
-    inputs:
-    inference_df_path (str): path to the model result csv
-    inference_images_path (str): path to the directory containing images model was run on
-    """
-    bad_dir = os.path.join(output_folder, 'bad')
-    good_dir = os.path.join(output_folder, 'good')
-    dirs = [bad_dir, good_dir]
-    for d in dirs:
-        try:
-            os.mkdir(d)
-        except:
-            pass
-    inference_df = pd.read_csv(inference_df_path)
-    for i in range(len(inference_df)):
-        input_image_path = inference_df['im_paths'].iloc[i]
-        im_name = os.path.basename(input_image_path) 
-        if file['im_classes'].iloc[i] == 'good':
-            output_image_path = os.path.join(good_dir, im_name)
-        else:
-            output_image_path = os.path.join(bad_dir, im_name)
-        shutil.move(input_image_path, output_image_path)
-        
-def run_inference(path_to_model_ckpt,
-                  path_to_inference_imgs,
-                  output_folder,
-                  image_size,
-                  result_path):
-    """
-    Runs the trained model on images, classifying them either as good or bad
-    Saves the results to a csv (image_path, class (good or bad), score (0 to 1)
-    Sorts the images into good or bad folders
-    inputs:
-    path_to_model_ckpt (str): path to the saved keras model
-    path_to_inference_imgs (str): path to the folder containing images to run the model on
-    output_folder (str): path to save outputs to
-    image_size (tuple, (xdim, ydim)): size of images for model
-    result_path (str): csv path to save results to
-    returns:
-    result_path (str): csv path of saved results
-    """
-    model = keras.saving.load_model(path_to_model_ckpt)
-    im_paths = glob.glob(path_to_inference_imgs+'/*.jpg')
-    im_classes = [None]*len(im_paths)
-    im_scores = [None]*len(im_paths)
-    i=0
-    for im_path in im_paths:
-        img = keras.utils.load_img(im_path, target_size=image_size)
-        img_array = keras.utils.img_to_array(img)
-        img_array = tf.expand_dims(img_array, 0)
-        predictions = model.predict(img_array)
-        score = float(keras.activations.sigmoid(predictions[0][0]))
-        good_score = score
-        bad_score = 1 - score
-        if good_score>bad_score:
-            im_classes[i] = 'good'
-            im_scores[i] = good_score
-        else:
-            im_classes[i] = 'bad'
-            im_scores[i] = bad_score
-        i=i+1
-    ##save results to a csv
-    df = pd.DataFrame({'im_paths':im_paths,
-                       'im_classes':im_classes,
-                       'im_scores':im_scores})
-    df.to_csv(result_path)
-    sort_images(result_path,
-                output_folder)
-    return result_path
-
-def sort_images(inference_df_path,
-                inference_images_path):
+                output_folder):
     """
     Using model results to sort the images the model was run on into good and bad folders
     inputs:
     inference_df_path (str): path to the csv containing model results
-    inference_images_path (str): path to the directory containing the inference images
+    output_folder (str): path to the directory containing the inference images
     """
-    bad_dir = os.path.join(inference_images_path, 'bad')
-    good_dir = os.path.join(inference_images_path, 'good')
-    dirs = [bad_dir, good_dir]
+    bad_dir = os.path.join(output_folder, 'bad')
+    good_dir = os.path.join(output_folder, 'good')
+    dirs = [output_folder, bad_dir, good_dir]
     for d in dirs:
         try:
             os.mkdir(d)
@@ -229,7 +158,65 @@ def sort_images(inference_df_path,
             output_image_path = os.path.join(good_dir, im_name)
         else:
             output_image_path = os.path.join(bad_dir, im_name)
-        shutil.move(input_image_path, output_image_path)
+        shutil.copyfile(input_image_path, output_image_path)
+        
+def run_inference(path_to_model_ckpt,
+                  path_to_inference_imgs,
+                  output_folder,
+                  result_path,
+                  threshold):
+    """
+    Runs the trained model on images, classifying them either as good or bad
+    Saves the results to a csv (image_path, class (good or bad), score (0 to 1)
+    Sorts the images into good or bad folders
+    Images should be '.jpg'
+    inputs:
+    path_to_model_ckpt (str): path to the saved keras model
+    path_to_inference_imgs (str): path to the folder containing images to run the model on
+    output_folder (str): path to save outputs to
+    result_path (str): csv path to save results to
+    threshold (float): threshold on sigmoid of model output (ex: 0.6 means mark images as good if model output is >= 0.6, or 60% sure it's a good image)
+    returns:
+    result_path (str): csv path of saved results
+    """
+    try:
+        os.mkdir(output_folder)
+    except:
+        pass
+    image_size = (128, 128)
+    model = keras.models.load_model(path_to_model_ckpt)
+    types = ('*.jpg', '*.jpeg', '*.png') 
+    im_paths = []
+    for files in types:
+        im_paths.extend(glob.glob(os.path.join(path_to_inference_imgs, files)))
+    model_scores = [None]*len(im_paths)
+    im_classes = [None]*len(im_paths)
+    im_scores = [None]*len(im_paths)
+    i=0
+    for im_path in im_paths:
+        img = keras.utils.load_img(im_path, target_size=image_size)
+        img_array = keras.utils.img_to_array(img)
+        img_array = tf.expand_dims(img_array, 0)
+        predictions = model.predict(img_array)
+        score = float(keras.activations.sigmoid(predictions[0][0]))
+        model_scores[i] = score
+        if score>=threshold:
+            im_classes[i] = 'good'
+            im_scores[i] = score
+        else:
+            im_classes[i] = 'bad'
+            im_scores[i] = 1-score
+        i=i+1
+    ##save results to a csv
+    df = pd.DataFrame({'im_paths':im_paths,
+                       'model_scores':model_scores,
+                       'im_classes':im_classes,
+                       'im_scores':im_scores})
+    df.to_csv(result_path)
+    sort_images(result_path,
+                output_folder)
+    return result_path
+
     
 def plot_history(history,
                  history_save_path):
@@ -239,18 +226,44 @@ def plot_history(history,
     history: history object from model.fit_generator
     history_save_path (str): path to save the plot to
     """
+    plt.subplot(4,1,1)
     plt.plot(history.history['loss'], color='b')
     plt.plot(history.history['val_loss'], color='r')
     plt.minorticks_on()
     plt.ylabel('Loss (BCE)')
     plt.xlabel('Epoch')
     plt.legend(['Training Data', 'Validation Data'],loc='upper right')
+    
+    plt.subplot(4,1,2)
+    plt.plot(history.history['acc'], color='b')
+    plt.plot(history.history['val_acc'], color='r')
+    plt.minorticks_on()
+    plt.ylabel('Accuracy')
+    plt.xlabel('Epoch')
+    plt.legend(['Training Data', 'Validation Data'],loc='upper right')
+    
+    plt.subplot(4,1,3)
+    plt.plot(history.history['precision'], color='b')
+    plt.plot(history.history['val_precision'], color='r')
+    plt.minorticks_on()
+    plt.ylabel('Precision')
+    plt.xlabel('Epoch')
+    plt.legend(['Training Data', 'Validation Data'],loc='upper right')
+
+    plt.subplot(4,1,4)
+    plt.plot(history.history['recall'], color='b')
+    plt.plot(history.history['val_recall'], color='r')
+    plt.minorticks_on()
+    plt.ylabel('Recall')
+    plt.xlabel('Epoch')
+    plt.legend(['Training Data', 'Validation Data'],loc='upper right')
+    plt.tight_layout()
     plt.savefig(history_save_path, dpi=300)
     plt.close('all')
     
 def training(path_to_training_data,
              output_folder,
-             epochs=100):
+             epochs=25):
     """
     Training the good/bad classification model
     inputs:
@@ -263,6 +276,7 @@ def training(path_to_training_data,
         os.mkdir(output_folder)
     except:
         pass
+    
     model_folder = os.path.join(output_folder, 'models')
     history_save_path = os.path.join(model_folder, 'history.png')
     try:
@@ -284,16 +298,34 @@ def training(path_to_training_data,
                                             val_ds,
                                             model_folder,
                                             epochs=epochs)
+    best_ckpt_file = os.path.join(model_folder, 'best.h5')
+    model.save(best_ckpt_file)
 
     ##Plotting and saving loss curve
     plot_history(history, history_save_path)
-    return ckpt_file
+    hist_df = pd.DataFrame(history.history) 
+    # save to csv: 
+    hist_csv_file = os.path.join(os.path.join(model_folder, 'history.csv'))
+    hist_df.to_csv(hist_csv_file, index=False)    
+
+    return best_ckpt_file
     
+"""
+Sample Train
+"""
+##training(os.path.join(os.getcwd(),'sorted','train'),
+##         os.getcwd(),
+##         epochs=25)    
 
 
-       
-
-
+"""
+Sample Call on Test Dataset
+"""
+##run_inference("""path/to/best.h5""",
+##              """path/to/jpgs_directory""",
+##              """path/to/output_directory""",
+##              """path/to/output_directory/output.csv"""
+##              )
 
 
 
