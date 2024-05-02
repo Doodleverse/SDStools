@@ -4,8 +4,10 @@
 ## written by Dr Daniel Buscombe, April 26-30, 2024
 
 ## Example usage, from cmd:
-## python download_topobathymap.py -f "ak_example.geojson" -s "AK"
 ## python download_topobathymap.py -s "Mattole" -f "/media/marda/FOURTB/SDS/Mattole1/ID_fgz1_datetime09-26-23__11_37_33/S2/ms/2015-10-04-19-20-18_S2_ID_fgz1_datetime09-26-23__11_37_33_ms.tif"
+
+# python download_topobathymap.py -s "Klamath" -f "/media/marda/TWOTB/USGS/Doodleverse/github/SDStools/example_data/2017-10-02-18-57-29_L8_GREATER_KLAMATH_ms.tif"
+
 
 import bathyreq
 import argparse
@@ -57,7 +59,7 @@ def parse_arguments() -> argparse.Namespace:
         dest="geofile",
         type=str,
         required=True,
-        help="Set the name of the geoJSON file.",
+        help="Set the name of the geotiff file.",
     )
 
     parser.add_argument(
@@ -99,8 +101,14 @@ def main():
     data, lonvec, latvec = req.get_area(
         longitude=[minlon, maxlon], latitude=[minlat, maxlat], size = [kwds['width'], kwds['height']] ) 
 
+    iy = np.where((lonvec>=minlon)&(lonvec<maxlon))[0]
+    ix = np.where((latvec>=minlat)&(latvec<maxlat))[0]
+    ## clip all data to these extents
+    latvec = latvec[ix]
+    lonvec = lonvec[iy]
+    data = data[ix[0]:ix[-1],iy[0]:iy[-1]]
+    ## flip data
     data = np.flipud(data)
-
 
     # Combine the lower and upper range of the terrain colormap with a gap in the middle
     # to let the coastline appear more prominently.
@@ -112,6 +120,7 @@ def main():
     cut_terrain_map = matplotlib.colors.LinearSegmentedColormap.from_list('cut_terrain', colors)
     norm = FixPointNormalize(sealevel=0, vmax=100)
 
+    plt.subplot(111,aspect='equal')
     plt.pcolormesh(lonvec,latvec,data,cmap=cut_terrain_map, norm=norm) 
     plt.colorbar(extend='both')
     # plt.show()
@@ -119,8 +128,8 @@ def main():
     plt.close()
 
 
-    xres = (maxlon - minlon) / data.shape[0]
-    yres = (maxlat - minlat) / data.shape[1]
+    xres = (maxlon - minlon) / data.shape[1]
+    yres = (maxlat - minlat) / data.shape[0]
 
     transform = Affine.translation(minlon - xres / 2, minlat - yres / 2) * Affine.scale(xres, yres)
 
@@ -138,6 +147,22 @@ def main():
             new_dataset.write(data, 1)
 
 
+if __name__ == "__main__":
+    main()
+
+
+    # with rasterio.open(
+    #         f"{site}_topobathy.tif",
+    #         mode="w",
+    #         driver="GTiff",
+    #         height=data.shape[0],
+    #         width=data.shape[1],
+    #         count=1,
+    #         dtype=data.dtype,
+    #         crs=kwds['crs'],
+    #         transform=kwds['transform'],
+    # ) as new_dataset:
+    #         new_dataset.write(data, 1)
 
     # transform = from_origin(minlon, minlat, data.shape[0]/(maxlon-minlon), data.shape[1]/(maxlat-minlat))
 
@@ -150,8 +175,3 @@ def main():
 
     # new_dataset.write(data, indexes=1)
     # new_dataset.close()
-
-
-if __name__ == "__main__":
-    main()
-

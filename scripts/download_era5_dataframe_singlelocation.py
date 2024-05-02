@@ -77,7 +77,7 @@ def parse_arguments() -> argparse.Namespace:
         dest="start_year",
         type=int,
         required=True,
-        help="Set the GEOJSON_FILE_PATH.",
+        help="Set the start year.",
     )
     parser.add_argument(
         "-B",
@@ -85,7 +85,7 @@ def parse_arguments() -> argparse.Namespace:
         dest="end_year",
         type=int,
         required=True,
-        help="Set the RAW_TIMESERIES_FILE_PATH.",
+        help="Set the end year.",
     )
     return parser.parse_args()
 
