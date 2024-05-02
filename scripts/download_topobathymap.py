@@ -5,7 +5,7 @@
 
 ## Example usage, from cmd:
 ## python download_topobathymap.py -f "ak_example.geojson" -s "AK"
-## python download_topobathymap.py -f "longisland_example.geojson" -s "longisland"
+## python download_topobathymap.py -s "Mattole" -f "/media/marda/FOURTB/SDS/Mattole1/ID_fgz1_datetime09-26-23__11_37_33/S2/ms/2015-10-04-19-20-18_S2_ID_fgz1_datetime09-26-23__11_37_33_ms.tif"
 
 import bathyreq
 import argparse
@@ -13,9 +13,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.colors
 import rasterio
-from rasterio.transform import from_origin
+# from rasterio.transform import from_origin
 from rasterio.transform import Affine
 import geopandas as gpd
+from rasterio.crs import CRS
+import rasterio.warp
+from shapely.geometry import box
+
 
 class FixPointNormalize(matplotlib.colors.Normalize):
     """ 
@@ -73,13 +77,30 @@ def main():
     site = args.site
     geofile = args.geofile
 
-    # load a region grid
-    grid = gpd.read_file(geofile)
-    minlon, minlat, maxlon, maxlat = grid.geometry.values.bounds[0]
+
+    with rasterio.open(geofile) as src_dataset:
+        kwds = src_dataset.profile
+        bounds  = src_dataset.bounds
+
+    # Project the feature to the desired CRS
+    feature_proj = rasterio.warp.transform_geom(
+        kwds['crs'],
+        CRS.from_epsg(4326),
+        box(*bounds)
+    )
+
+    tmp = np.array(feature_proj['coordinates']).squeeze()
+    minlon = np.min(tmp[:,0])
+    maxlon = np.max(tmp[:,0])
+    minlat = np.min(tmp[:,1])
+    maxlat = np.max(tmp[:,1])
 
     req = bathyreq.BathyRequest()
     data, lonvec, latvec = req.get_area(
-        longitude=[minlon, maxlon], latitude=[minlat, maxlat] , size = [size_x, size_y])
+        longitude=[minlon, maxlon], latitude=[minlat, maxlat], size = [kwds['width'], kwds['height']] ) 
+
+    data = np.flipud(data)
+
 
     # Combine the lower and upper range of the terrain colormap with a gap in the middle
     # to let the coastline appear more prominently.
@@ -97,28 +118,26 @@ def main():
     plt.savefig(f'{site}_topobathy_{minlon}_{maxlon}_{minlat}_{maxlat}.png', dpi=300, bbox_inches='tight')
     plt.close()
 
+
     xres = (maxlon - minlon) / data.shape[0]
     yres = (maxlat - minlat) / data.shape[1]
 
     transform = Affine.translation(minlon - xres / 2, minlat - yres / 2) * Affine.scale(xres, yres)
-    # transform = Affine.translation(minlat - yres / 2, minlon - xres / 2) * Affine.scale(yres, xres)
-
-    # data = np.rot90(data.T)
-    # data = np.flipud(data)
-    # data = np.fliplr(data)
 
     with rasterio.open(
-            f"{site}_method1.tif",
+            f"{site}_topobathy.tif",
             mode="w",
             driver="GTiff",
             height=data.shape[0],
             width=data.shape[1],
             count=1,
             dtype=data.dtype,
-            crs="+proj=latlong  +ellps=WGS84 +datum=WGS84 +no_defs",
+            crs="+proj=latlong +ellps=WGS84 +datum=WGS84 +no_defs",
             transform=transform,
     ) as new_dataset:
             new_dataset.write(data, 1)
+
+
 
     # transform = from_origin(minlon, minlat, data.shape[0]/(maxlon-minlon), data.shape[1]/(maxlat-minlat))
 

@@ -1,3 +1,60 @@
+import rasterio
+from rasterio.crs import CRS
+import rasterio.warp
+
+import rasterio.warp
+from shapely.geometry import box
+import numpy as np
+import bathyreq
+from rasterio.transform import Affine
+
+
+file = '/media/marda/FOURTB/SDS/Mattole1/ID_fgz1_datetime09-26-23__11_37_33/S2/ms/2015-10-04-19-20-18_S2_ID_fgz1_datetime09-26-23__11_37_33_ms.tif'
+site='Mattole'
+
+
+with rasterio.open(file) as src_dataset:
+    kwds = src_dataset.profile
+    bounds  = src_dataset.bounds
+
+# Project the feature to the desired CRS
+feature_proj = rasterio.warp.transform_geom(
+    kwds['crs'],
+    CRS.from_epsg(4326),
+    box(*bounds)
+)
+
+tmp = np.array(feature_proj['coordinates']).squeeze()
+minlon = np.min(tmp[:,0])
+maxlon = np.max(tmp[:,0])
+minlat = np.min(tmp[:,1])
+maxlat = np.max(tmp[:,1])
+
+req = bathyreq.BathyRequest()
+data, lonvec, latvec = req.get_area(
+    longitude=[minlon, maxlon], latitude=[minlat, maxlat], size = [kwds['width'], kwds['height']] ) 
+
+
+data = np.flipud(data)
+
+xres = (maxlon - minlon) / data.shape[0]
+yres = (maxlat - minlat) / data.shape[1]
+
+transform = Affine.translation(minlon - xres / 2, minlat - yres / 2) * Affine.scale(xres, yres)
+
+with rasterio.open(
+        f"{site}_topobathy.tif",
+        mode="w",
+        driver="GTiff",
+        height=data.shape[0],
+        width=data.shape[1],
+        count=1,
+        dtype=data.dtype,
+        crs="+proj=latlong  +ellps=WGS84 +datum=WGS84 +no_defs",
+        transform=transform,
+) as new_dataset:
+        new_dataset.write(data, 1)
+
 
 
 ##### WORK IN PROGRESS - NOTHING TO SEE HERE YET
