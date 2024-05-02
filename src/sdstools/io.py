@@ -6,7 +6,7 @@ def read_merged_transect_time_series_file(transect_time_series_file):
     "read and parse a CoastSeg/CoastSat output file in stacked columnwise date and transects format"
     merged_transect_time_series = pd.read_csv(transect_time_series_file)
 
-    data_matrix = merged_transect_time_series.T.iloc[2:]
+    data_matrix = merged_transect_time_series.T.iloc[1:]
     data_matrix = np.array(data_matrix.values).astype('float')
 
     dates_vector = pd.to_datetime(merged_transect_time_series.dates)

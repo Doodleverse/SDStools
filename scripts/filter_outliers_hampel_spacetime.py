@@ -5,13 +5,14 @@
 
 ## Example usage, from cmd:
 ## python filter_outliers_hampel_spacetime.py -f "/media/marda/TWOTB/USGS/Doodleverse/github/SDStools/example_data/transect_time_series_coastsat.csv"
-## python filter_outliers_hampel_spacetime.py -f "/media/marda/TWOTB/USGS/Doodleverse/github/SDStools/example_data/transect_time_series_coastsat.csv" -s 3
+## python filter_outliers_hampel_spacetime.py -f "/media/marda/TWOTB/USGS/Doodleverse/github/SDStools/example_data/transect_time_series_coastsat.csv" -s 3 -i 5 -w
+## python filter_outliers_hampel_spacetime.py -f "/media/marda/TWOTB/USGS/Doodleverse/github/SDStools/example_data/transect_time_series_zoo.csv"
 
 import argparse, os
 import matplotlib.pyplot as plt
 import numpy as np
-from src.SDStools.filter import hampel_filter_matlab
-from src.SDStools import io 
+from sdstools import filter
+from sdstools import io 
 import pandas as pd
 
 
@@ -39,31 +40,53 @@ def parse_arguments() -> argparse.Namespace:
         dest="NoSTDsRemoved",
         type=int,
         required=False,
-        default=3,
+        default=2,
         help="Set the NoSTDsRemoved parameter.",
     )
 
     parser.add_argument(
-        "-S",
-        "-s",
+        "-I",
+        "-i",
         dest="iterations",
         type=int,
         required=False,
-        default=5,
+        default=3,
         help="Set the iterations parameter.",
     )
 
     parser.add_argument(
-        "-S",
-        "-s",
+        "-W",
+        "-w",
         dest="windowPerc",
         type=int,
         required=False,
-        default=5,
+        default=0.05,
         help="Set the windowPerc parameter.",
     )
 
     return parser.parse_args()
+
+def implement_filter(cs_data_matrix, windowPerc, NoSTDsRemoved, iteration):
+
+    orig = cs_data_matrix.copy()
+
+    cs_data_matrix_outliers_removed = cs_data_matrix.copy()
+    for k in range(orig.shape[0]):
+        SDS_timeseries = orig[k,:]
+        try:
+            outliers = filter.hampel_filter(SDS_timeseries, window_size=int(windowPerc * len(SDS_timeseries)), n_sigma=NoSTDsRemoved) 
+        except:
+            outliers = filter.hampel_filter(SDS_timeseries, window_size=1+int(windowPerc * len(SDS_timeseries)), n_sigma=NoSTDsRemoved) 
+
+        cs_data_matrix_outliers_removed[k,outliers] = np.nan 
+
+
+    num_outliers_removed = np.sum(np.isnan(cs_data_matrix_outliers_removed)) -  np.sum(np.isnan(cs_data_matrix))
+    print(f"Iteration: {iteration}")
+    print(f"Outliers removed: {num_outliers_removed}")
+    print(f"Outliers removed percent: {100*(num_outliers_removed/np.prod(np.shape(cs_data_matrix_outliers_removed)))}")
+
+    return cs_data_matrix_outliers_removed
 
 
 ##==========================================
@@ -74,29 +97,37 @@ def main():
     iterations = args.iterations
     NoSTDsRemoved = args.NoSTDsRemoved
 
-    # NoSTDsRemoved = 3, iterations   = 5, windowPerc   = .05
-    # csv_file = '/media/marda/TWOTB/USGS/Doodleverse/github/SDStools/example_data/transect_time_series_coastsat.csv'
+    print(f"Window as a percent of data length: {windowPerc}")
+    print(f"Number of iterations: {iterations}")
+    print(f"Number of stdev from mean: {NoSTDsRemoved}")
 
     ### input files
-    cs_file = os.path.normpath(os.getcwd()+csv_file)
+    cs_file = os.path.normpath(csv_file)
+    ### read in data and column/row vectors
     cs_data_matrix, cs_dates_vector, cs_transects_vector = io.read_merged_transect_time_series_file(cs_file)
 
-
-    cs_data_matrix_outliers_removed = cs_data_matrix.copy()
-    for k in range(cs_data_matrix.shape[0]):
-        SDS_timeseries = cs_data_matrix[k,:]
-        outliers = hampel_filter_matlab(SDS_timeseries, NoSTDsRemoved = NoSTDsRemoved, iterations   = iterations, windowPerc   = windowPerc)
-        cs_data_matrix_outliers_removed[k,outliers] = np.nan 
+    cs_data_matrix_outliers_removed = implement_filter(cs_data_matrix, windowPerc, NoSTDsRemoved, iteration=1)
+    if iterations>2:
+        for k in range(iterations):
+            cs_data_matrix_outliers_removed = implement_filter(cs_data_matrix_outliers_removed, windowPerc, NoSTDsRemoved, iteration=k)
+    elif iterations==2:
+        cs_data_matrix_outliers_removed = implement_filter(cs_data_matrix_outliers_removed, windowPerc, NoSTDsRemoved, iteration=2)
 
     df = pd.DataFrame(cs_data_matrix_outliers_removed.T,columns=cs_transects_vector)
     df.set_index(cs_dates_vector)
     df.to_csv(csv_file.replace(".csv","_nooutliers.csv"))
 
-    # plt.subplot(121)
-    # plt.imshow(cs_data_matrix)
-    # plt.subplot(122)
-    # plt.imshow(cs_data_matrix_outliers_removed)
-    # plt.show()
+
+    plt.figure(figsize=(12,8))
+    plt.subplot(121)
+    plt.imshow(cs_data_matrix)
+    plt.axis('off'); plt.title("a) Original", loc='left')
+    plt.subplot(122)
+    plt.imshow(cs_data_matrix_outliers_removed)
+    plt.axis('off'); plt.title("b) Outliers removed", loc='left')
+    outfile = csv_file.replace(".csv","_nooutliers.png")
+    plt.savefig(outfile, dpi=200, bbox_inches='tight')
+    plt.close()
 
 
 if __name__ == "__main__":
