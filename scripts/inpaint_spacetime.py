@@ -4,9 +4,8 @@
 ## written by Dr Daniel Buscombe, May 1, 2024
 
 ## Example usage, from cmd:
-## python inpaint_spacetime.py -f "/media/marda/TWOTB/USGS/Doodleverse/github/SDStools/example_data/transect_time_series_coastsat.csv"
-## python inpaint_spacetime.py -f "/media/marda/TWOTB/USGS/Doodleverse/github/SDStools/example_data/transect_time_series_coastsat.csv" 
-## python inpaint_spacetime.py -f "/media/marda/TWOTB/USGS/Doodleverse/github/SDStools/example_data/transect_time_series_zoo.csv"
+## python inpaint_spacetime.py -f "/media/marda/TWOTB/USGS/Doodleverse/github/SDStools/example_data/elwha_mainROI_df_distances_by_time_and_transect_CoastSat_nooutliers.csv"
+
 
 import argparse, os
 import matplotlib.pyplot as plt
@@ -17,7 +16,7 @@ import pandas as pd
 
 def parse_arguments() -> argparse.Namespace:
     """
-    Parse command-line arguments for the  Hampel filter to remove outliers in SDS data matrix script.
+    Parse command-line arguments for inpainting SDS data matrix.
     Arguments and their defaults are defined within the function.
     Returns:
     - argparse.Namespace: A namespace containing the script's command-line arguments.
@@ -49,21 +48,21 @@ def main():
 
     cs_data_matrix_nooutliers_nonans = interpolation.inpaint_spacetime_matrix(cs_data_matrix)
 
-    # df = pd.DataFrame(cs_data_matrix_outliers_removed.T,columns=cs_transects_vector)
-    # df.set_index(cs_dates_vector)
-    # df.to_csv(csv_file.replace(".csv","_nooutliers.csv"))
+    df = pd.DataFrame(cs_data_matrix_nooutliers_nonans.T,columns=cs_transects_vector)
+    df.set_index(cs_dates_vector)
+    df.to_csv(csv_file.replace(".csv","_inpainted.csv"))
 
 
-    # plt.figure(figsize=(12,8))
-    # plt.subplot(121)
-    # plt.imshow(cs_data_matrix)
-    # plt.axis('off'); plt.title("a) Original", loc='left')
-    # plt.subplot(122)
-    # plt.imshow(cs_data_matrix_outliers_removed)
-    # plt.axis('off'); plt.title("b) Outliers removed", loc='left')
-    # outfile = csv_file.replace(".csv","_nooutliers.png")
-    # plt.savefig(outfile, dpi=200, bbox_inches='tight')
-    # plt.close()
+    plt.figure(figsize=(12,8))
+    plt.subplot(121)
+    plt.imshow(cs_data_matrix)
+    plt.axis('off'); plt.title("a) Original", loc='left')
+    plt.subplot(122)
+    plt.imshow(cs_data_matrix_nooutliers_nonans)
+    plt.axis('off'); plt.title("b) Inpainted", loc='left')
+    outfile = csv_file.replace(".csv","_inpainted.png")
+    plt.savefig(outfile, dpi=200, bbox_inches='tight')
+    plt.close()
 
 
 if __name__ == "__main__":

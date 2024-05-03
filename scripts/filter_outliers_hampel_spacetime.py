@@ -114,7 +114,7 @@ def main():
         cs_data_matrix_outliers_removed = implement_filter(cs_data_matrix_outliers_removed, windowPerc, NoSTDsRemoved, iteration=2)
 
     df = pd.DataFrame(cs_data_matrix_outliers_removed.T,columns=cs_transects_vector)
-    df.set_index(cs_dates_vector)
+    df = df.set_index(cs_dates_vector)
     df.to_csv(csv_file.replace(".csv","_nooutliers.csv"))
 
 

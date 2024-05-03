@@ -136,7 +136,7 @@ def main():
             'day': days,
             'time': times,    
             'grid': [0.25, 0.25],
-            'area': [lat+offset, lon+offset, lat-offset, lon-offset],
+            'area': [lon+offset, lat+offset, lon-offset, lat-offset], #[lat+offset, lon+offset, lat-offset, lon-offset],
             }  
             
         # retrieves the path to the file

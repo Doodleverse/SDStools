@@ -4,8 +4,13 @@ import numpy as np
 
 def read_merged_transect_time_series_file(transect_time_series_file):
     "read and parse a CoastSeg/CoastSat output file in stacked columnwise date and transects format"
-    merged_transect_time_series = pd.read_csv(transect_time_series_file)
+    merged_transect_time_series = pd.read_csv(transect_time_series_file, index_col=False)
+    merged_transect_time_series.reset_index(drop=True, inplace=True)
 
+    # Removing unnamed columns using drop function
+    merged_transect_time_series.drop(merged_transect_time_series.columns[merged_transect_time_series.columns.str.contains(
+        'unnamed', case=False)], axis=1, inplace=True)
+    
     data_matrix = merged_transect_time_series.T.iloc[1:]
     data_matrix = np.array(data_matrix.values).astype('float')
 
