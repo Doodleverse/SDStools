@@ -6,7 +6,6 @@
 ## Example usage, from cmd:
 ## python inpaint_spacetime.py -f "/media/marda/TWOTB/USGS/Doodleverse/github/SDStools/example_data/elwha_mainROI_df_distances_by_time_and_transect_CoastSat_nooutliers.csv"
 
-
 import argparse, os
 import matplotlib.pyplot as plt
 import numpy as np
@@ -49,7 +48,7 @@ def main():
     cs_data_matrix_nooutliers_nonans = interpolation.inpaint_spacetime_matrix(cs_data_matrix)
 
     df = pd.DataFrame(cs_data_matrix_nooutliers_nonans.T,columns=cs_transects_vector)
-    df.set_index(cs_dates_vector)
+    df = df.set_index(cs_dates_vector)
     df.to_csv(csv_file.replace(".csv","_inpainted.csv"))
 
 

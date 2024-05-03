@@ -5,8 +5,6 @@
 
 ## Example usage, from cmd:
 ## python denoise_inpainted_spacetime.py -f "/media/marda/TWOTB/USGS/Doodleverse/github/SDStools/example_data/transect_time_series_coastsat.csv"
-## python denoise_inpainted_spacetime.py -f "/media/marda/TWOTB/USGS/Doodleverse/github/SDStools/example_data/transect_time_series_coastsat.csv" 
-## python denoise_inpainted_spacetime.py -f "/media/marda/TWOTB/USGS/Doodleverse/github/SDStools/example_data/transect_time_series_zoo.csv"
 
 import argparse, os
 import matplotlib.pyplot as plt
@@ -22,7 +20,7 @@ def parse_arguments() -> argparse.Namespace:
     Returns:
     - argparse.Namespace: A namespace containing the script's command-line arguments.
     """
-    parser = argparse.ArgumentParser(description="Script to apply Hampel filter to remove outliers in SDS data matrix (columns=transects, rows=shoreline positions)")
+    parser = argparse.ArgumentParser(description="Script to ")
 
     parser.add_argument(
         "-f",
@@ -49,21 +47,21 @@ def main():
 
     cs_data_matrix_nonans_denoised = filter.filter_wavelet_auto(cs_data_matrix)
 
-    # df = pd.DataFrame(cs_data_matrix_outliers_removed.T,columns=cs_transects_vector)
-    # df.set_index(cs_dates_vector)
-    # df.to_csv(csv_file.replace(".csv","_nooutliers.csv"))
+    df = pd.DataFrame(cs_data_matrix_nonans_denoised.T,columns=cs_transects_vector)
+    df.set_index(cs_dates_vector)
+    df.to_csv(csv_file.replace(".csv","_denoised.csv"))
 
 
-    # plt.figure(figsize=(12,8))
-    # plt.subplot(121)
-    # plt.imshow(cs_data_matrix)
-    # plt.axis('off'); plt.title("a) Original", loc='left')
-    # plt.subplot(122)
-    # plt.imshow(cs_data_matrix_outliers_removed)
-    # plt.axis('off'); plt.title("b) Outliers removed", loc='left')
-    # outfile = csv_file.replace(".csv","_nooutliers.png")
-    # plt.savefig(outfile, dpi=200, bbox_inches='tight')
-    # plt.close()
+    plt.figure(figsize=(12,8))
+    plt.subplot(121)
+    plt.imshow(cs_data_matrix)
+    plt.axis('off'); plt.title("a) Original", loc='left')
+    plt.subplot(122)
+    plt.imshow(cs_data_matrix_nonans_denoised)
+    plt.axis('off'); plt.title("b) Denoised", loc='left')
+    outfile = csv_file.replace(".csv","_nooutliers.png")
+    plt.savefig(outfile, dpi=200, bbox_inches='tight')
+    plt.close()
 
 
 if __name__ == "__main__":

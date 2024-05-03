@@ -5,7 +5,7 @@
 
 ## Downloads combined sea/swell Hs, mean T, peak T, and mean D
 ## computes wave setup and wave power assuming deep water
-## written by Dr Daniel Buscombe, April 26, 2024
+## written by Dr Daniel Buscombe, April-May, 2024
 
 ## Example usage, from cmd:
 ## python download_era5_dataframe_singlelocation.py -f "my_location" -a 1984 -b 2023 -x -160.8052  -y 64.446
@@ -14,6 +14,7 @@ import cdsapi
 import pandas as pd
 import numpy as np
 import xarray as xr
+import datetime as dt
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -136,7 +137,7 @@ def main():
             'day': days,
             'time': times,    
             'grid': [0.25, 0.25],
-            'area': [lon+offset, lat+offset, lon-offset, lat-offset], #[lat+offset, lon+offset, lat-offset, lon-offset],
+            'area': [lat+offset, lon-offset, lat-offset, lon+offset], 
             }  
             
         # retrieves the path to the file
@@ -159,14 +160,25 @@ def main():
 
         if v == 'significant_height_of_combined_wind_waves_and_swell':
             df_dict['date']=data.time.values.squeeze()
-            df_dict['swh']=np.nanmedian(data.swh.values.squeeze(),axis=1)
+            try:
+                df_dict['swh']=np.nanmedian(data.swh.values.squeeze(),axis=1)
+            except:
+                df_dict['swh']=data.swh.values.squeeze()
         elif v == 'mean_wave_period':
-            df_dict['mwp']=np.nanmedian(data.mwp.values.squeeze(),axis=1)
+            try:
+                df_dict['mwp']=np.nanmedian(data.mwp.values.squeeze(),axis=1)
+            except:
+                df_dict['mwp']=data.mwp.values.squeeze()
         elif v == 'peak_wave_period':
-            df_dict['pp1d']=np.nanmedian(data.pp1d.values.squeeze(),axis=1)
+            try:
+                df_dict['pp1d']=np.nanmedian(data.pp1d.values.squeeze(),axis=1)
+            except:
+                df_dict['pp1d']=data.pp1d.values.squeeze()
         elif v == 'mean_wave_direction':
-            df_dict['mwd']=np.nanmedian(data.mwd.values.squeeze(),axis=1)
-
+            try:
+                df_dict['mwd']=np.nanmedian(data.mwd.values.squeeze(),axis=1)
+            except:
+                df_dict['mwd']=data.mwd.values.squeeze()
     df_dict['wp']=wavepower_deep(df_dict['swh'], df_dict['pp1d'])
     df_dict['ws']=compute_setup_deep(df_dict['swh'], df_dict['pp1d'])
 
@@ -196,6 +208,16 @@ def main():
     plt.ylabel('Peak Wave Period (s)')
     #plt.show()
     plt.savefig(f'{fileprefix}_{dataset}_joint_and_marginal_distributions_Hs_Tpeak.png',dpi=300, bbox_inches='tight')
+    plt.close()
+
+
+    #plot sales by date
+    plt.plot_date(df['date'].apply(pd.Timestamp), df.swh, 'k-')
+    #rotate x-axis ticks 45 degrees and right-aline
+    plt.xticks(rotation=45, ha='right')
+    # plt.axvline(dt.datetime(2011, 8, 28),color='r')
+    #plt.show()
+    plt.savefig(f'{fileprefix}_{dataset}_timeseries_Hs.png',dpi=300, bbox_inches='tight')
     plt.close()
 
 
