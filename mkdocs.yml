@@ -47,4 +47,5 @@ nav:
   - Installation:
       - Installation Guide: install-guide.md
   - Guides:
-      - Filter Outliers: filter_outliers_guide.md
+      - 1. Filter Outliers: filter_outliers_guide.md
+      - 2. Fill in Missing Values: inpaint_spacetime_guide.md
