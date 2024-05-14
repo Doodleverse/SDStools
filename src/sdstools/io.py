@@ -1,9 +1,22 @@
 
 import pandas as pd 
 import numpy as np
+from typing import Tuple, List
 
-def read_merged_transect_time_series_file(transect_time_series_file):
-    "read and parse a CoastSeg/CoastSat output file in stacked columnwise date and transects format"
+def read_merged_transect_time_series_file(transect_time_series_file: str) -> Tuple[np.ndarray, pd.Series, List[str]]:
+    """
+    Read and parse a CoastSeg/CoastSat output file in stacked column wise date and transects format.
+
+    This function reads a CSV file, removes unnamed columns, and transforms the data into a matrix.
+    It also extracts a vector of dates and a vector of transects from the data.
+
+    Parameters:
+    transect_time_series_file (str): The path to the CSV file to be read.
+
+    Returns:
+    Tuple[np.ndarray, pd.Series, List[str]]: A tuple containing the shoreline positions along the transects as a matrix (numpy array), 
+    shoreline positions along the transects as a vector (pandas Series), and the transects vector (list of strings).
+    """
     merged_transect_time_series = pd.read_csv(transect_time_series_file, index_col=False)
     merged_transect_time_series.reset_index(drop=True, inplace=True)
 
@@ -11,6 +24,7 @@ def read_merged_transect_time_series_file(transect_time_series_file):
     merged_transect_time_series.drop(merged_transect_time_series.columns[merged_transect_time_series.columns.str.contains(
         'unnamed', case=False)], axis=1, inplace=True)
     
+    # Extracting the shoreline positions along the transects for each date
     data_matrix = merged_transect_time_series.T.iloc[1:]
     data_matrix = np.array(data_matrix.values).astype('float')
 
