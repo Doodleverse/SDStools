@@ -2,7 +2,7 @@
 
 ## Need Help
 
-    python -h filter_outliers_hampel_spacetime.py
+    python filter_outliers_hampel_spacetime.py --help
 
 ## Example #1
 
