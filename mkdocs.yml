@@ -1,0 +1,50 @@
+site_url: https://Doodleverse.github.io/SDStools/
+site_name: SDStools
+site_description: A toolbox for filtering outliers, analyzing and find trends in times series shoreline data from CoastSeg.
+
+repo_url: https://github.com/Doodleverse/SDStools
+repo_name: SDStools
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  icon:
+    logo: material/tools
+    favicon: material/tools
+
+  palette:
+    # Palette toggle for dark mode
+    - scheme: slate
+      toggle:
+        icon: material/brightness-7
+        name: Switch to light mode
+
+    # Palette toggle for light mode
+    - scheme: default
+      toggle:
+        icon: material/brightness-4
+        name: Switch to dark mode
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - abbr
+  - attr_list
+  - def_list
+  - footnotes
+  - meta
+  - md_in_html
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      linenums: true
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Installation:
+      - Installation Guide: install-guide.md
+  - Guides:
+      - Filter Outliers: filter_outliers_guide.md
