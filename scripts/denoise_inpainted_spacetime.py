@@ -9,9 +9,81 @@
 import argparse, os
 import matplotlib.pyplot as plt
 import numpy as np
-from sdstools import filter
-from sdstools import io 
 import pandas as pd
+from functools import partial
+from typing import List, Tuple
+from skimage.restoration import calibrate_denoiser, denoise_wavelet
+# rescale_sigma=True required to silence deprecation warnings
+_denoise_wavelet = partial(denoise_wavelet, rescale_sigma=True)
+
+def filter_wavelet_auto(cs_matrix_inpaint):
+    """
+    Apply wavelet-based denoising to the input compressed sensing matrix.
+
+    Parameters:
+    - cs_matrix_inpaint: numpy.ndarray
+        The input compressed sensing matrix to be denoised.
+
+    Returns:
+    - cs_inpaint_denoised: numpy.ndarray
+        The denoised compressed sensing matrix.
+
+    This function applies wavelet-based denoising to the input compressed sensing matrix using the following steps:
+    1. Define parameter ranges for calibrating the denoising algorithm.
+    2. Obtain a denoised image using default parameters of `denoise_wavelet`.
+    3. Calibrate the denoiser using the input compressed sensing matrix and the `_denoise_wavelet` function.
+    4. Obtain a denoised image using the calibrated denoiser.
+
+    Note: The `_denoise_wavelet` function is not defined in the provided code snippet.
+
+    Example usage:
+    cs_matrix = ...
+    denoised_matrix = filter_wavelet_auto(cs_matrix)
+    """
+    # Parameters to test when calibrating the denoising algorithm
+    parameter_ranges = {'sigma': np.arange(0.02, 0.2, 0.02),
+                        'wavelet': ['db1', 'db2'],
+                        'convert2ycbcr': [False, False]}
+
+    # Calibrate denoiser
+    calibrated_denoiser = calibrate_denoiser(cs_matrix_inpaint,
+                                            _denoise_wavelet,
+                                            denoise_parameters=parameter_ranges)
+
+    # Denoised image using calibrated denoiser
+    cs_inpaint_denoised = calibrated_denoiser(cs_matrix_inpaint)
+    return cs_inpaint_denoised
+
+def read_merged_transect_time_series_file(transect_time_series_file: str) -> Tuple[np.ndarray, pd.Series, List[str]]:
+    """
+    Read and parse a CoastSeg/CoastSat output file in stacked column wise date and transects format.
+
+    This function reads a CSV file, removes unnamed columns, and transforms the data into a matrix.
+    It also extracts a vector of dates and a vector of transects from the data.
+
+    Parameters:
+    transect_time_series_file (str): The path to the CSV file to be read.
+
+    Returns:
+    Tuple[np.ndarray, pd.Series, List[str]]: A tuple containing the shoreline positions along the transects as a matrix (numpy array), 
+    shoreline positions along the transects as a vector (pandas Series), and the transects vector (list of strings).
+    """
+    merged_transect_time_series = pd.read_csv(transect_time_series_file, index_col=False)
+    merged_transect_time_series.reset_index(drop=True, inplace=True)
+
+    # Removing unnamed columns using drop function
+    merged_transect_time_series.drop(merged_transect_time_series.columns[merged_transect_time_series.columns.str.contains(
+        'unnamed', case=False)], axis=1, inplace=True)
+    
+    # Extracting the shoreline positions along the transects for each date
+    data_matrix = merged_transect_time_series.T.iloc[1:]
+    data_matrix = np.array(data_matrix.values).astype('float')
+
+    dates_vector = pd.to_datetime(merged_transect_time_series.dates)
+    # get the transect IDs as a vector
+    transects_vector = [t for t in merged_transect_time_series.T.index[1:] if 'date' not in t]
+
+    return data_matrix, dates_vector, transects_vector
 
 def parse_arguments() -> argparse.Namespace:
     """
@@ -30,6 +102,14 @@ def parse_arguments() -> argparse.Namespace:
         required=True,
         help="Set the name of the CSV file.",
     )
+    parser.add_argument(
+        "-n",
+        "-M",
+        dest="method",
+        type=str,
+        required=True,
+        help="Set the method to use to remove outliers.",
+    )
 
 
     return parser.parse_args()
@@ -39,13 +119,15 @@ def parse_arguments() -> argparse.Namespace:
 def main():
     args = parse_arguments()
     csv_file = args.csv_file
-
+    method = args.method
+    
+    
     ### input files
     cs_file = os.path.normpath(csv_file)
     ### read in data and column/row vectors
-    cs_data_matrix, cs_dates_vector, cs_transects_vector = io.read_merged_transect_time_series_file(cs_file)
+    cs_data_matrix, cs_dates_vector, cs_transects_vector = read_merged_transect_time_series_file(cs_file)
 
-    cs_data_matrix_nonans_denoised = filter.filter_wavelet_auto(cs_data_matrix)
+    cs_data_matrix_nonans_denoised = filter_wavelet_auto(cs_data_matrix)
 
     df = pd.DataFrame(cs_data_matrix_nonans_denoised.T,columns=cs_transects_vector)
     df.set_index(cs_dates_vector)

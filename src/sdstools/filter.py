@@ -136,6 +136,29 @@ def hampel_filter_matlab(ShorePositionRaw, NoSTDsRemoved = 3, iterations   = 5, 
 
 
 def filter_wavelet_auto(cs_matrix_inpaint):
+    """
+    Apply wavelet-based denoising to the input compressed sensing matrix.
+
+    Parameters:
+    - cs_matrix_inpaint: numpy.ndarray
+        The input compressed sensing matrix to be denoised.
+
+    Returns:
+    - cs_inpaint_denoised: numpy.ndarray
+        The denoised compressed sensing matrix.
+
+    This function applies wavelet-based denoising to the input compressed sensing matrix using the following steps:
+    1. Define parameter ranges for calibrating the denoising algorithm.
+    2. Obtain a denoised image using default parameters of `denoise_wavelet`.
+    3. Calibrate the denoiser using the input compressed sensing matrix and the `_denoise_wavelet` function.
+    4. Obtain a denoised image using the calibrated denoiser.
+
+    Note: The `_denoise_wavelet` function is not defined in the provided code snippet.
+
+    Example usage:
+    cs_matrix = ...
+    denoised_matrix = filter_wavelet_auto(cs_matrix)
+    """
     # Parameters to test when calibrating the denoising algorithm
     parameter_ranges = {'sigma': np.arange(0.02, 0.2, 0.02),
                         'wavelet': ['db1', 'db2'],

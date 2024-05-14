@@ -9,9 +9,55 @@
 import argparse, os
 import matplotlib.pyplot as plt
 import numpy as np
-from sdstools import interpolation
-from sdstools import io 
 import pandas as pd
+from typing import List, Tuple
+from skimage.restoration import inpaint
+from skimage.morphology import remove_small_objects, remove_small_holes
+
+def inpaint_spacetime_matrix(input_matrix):
+    mask = np.isnan(input_matrix)
+    return inpaint.inpaint_biharmonic(input_matrix, mask)
+
+
+def inpaint_spacetime_matrix_masklarge(input_matrix, area_threshold =50 ):
+    mask = np.isnan(input_matrix)
+    mask = remove_small_objects(mask, area_threshold)
+    mask = remove_small_holes(mask, area_threshold)
+
+    return inpaint.inpaint_biharmonic(input_matrix, mask)
+
+
+def read_merged_transect_time_series_file(transect_time_series_file: str) -> Tuple[np.ndarray, pd.Series, List[str]]:
+    """
+    Read and parse a CoastSeg/CoastSat output file in stacked column wise date and transects format.
+
+    This function reads a CSV file, removes unnamed columns, and transforms the data into a matrix.
+    It also extracts a vector of dates and a vector of transects from the data.
+
+    Parameters:
+    transect_time_series_file (str): The path to the CSV file to be read.
+
+    Returns:
+    Tuple[np.ndarray, pd.Series, List[str]]: A tuple containing the shoreline positions along the transects as a matrix (numpy array), 
+    shoreline positions along the transects as a vector (pandas Series), and the transects vector (list of strings).
+    """
+    merged_transect_time_series = pd.read_csv(transect_time_series_file, index_col=False)
+    merged_transect_time_series.reset_index(drop=True, inplace=True)
+
+    # Removing unnamed columns using drop function
+    merged_transect_time_series.drop(merged_transect_time_series.columns[merged_transect_time_series.columns.str.contains(
+        'unnamed', case=False)], axis=1, inplace=True)
+    
+    # Extracting the shoreline positions along the transects for each date
+    data_matrix = merged_transect_time_series.T.iloc[1:]
+    data_matrix = np.array(data_matrix.values).astype('float')
+
+    dates_vector = pd.to_datetime(merged_transect_time_series.dates)
+    # get the transect IDs as a vector
+    transects_vector = [t for t in merged_transect_time_series.T.index[1:] if 'date' not in t]
+
+    return data_matrix, dates_vector, transects_vector
+
 
 def parse_arguments() -> argparse.Namespace:
     """
@@ -30,7 +76,15 @@ def parse_arguments() -> argparse.Namespace:
         required=True,
         help="Set the name of the CSV file.",
     )
-
+    parser.add_argument(
+        "-m",
+        "-M",
+        dest="method",
+        type=str,
+        required=False,
+        default='default',
+        help="Set the name of the method - 'default' or 'smart'. Setting the method to 'smart' in the script applies biharmonic inpainting to the data matrix after removing small objects and holes from the mask of missing values.",
+    )
 
     return parser.parse_args()
 
@@ -39,17 +93,27 @@ def parse_arguments() -> argparse.Namespace:
 def main():
     args = parse_arguments()
     csv_file = args.csv_file
-
+    method = args.method
+    
+    
     ### input files
     cs_file = os.path.normpath(csv_file)
     ### read in data and column/row vectors
-    cs_data_matrix, cs_dates_vector, cs_transects_vector = io.read_merged_transect_time_series_file(cs_file)
+    cs_data_matrix, cs_dates_vector, cs_transects_vector = read_merged_transect_time_series_file(cs_file)
 
-    cs_data_matrix_nooutliers_nonans = interpolation.inpaint_spacetime_matrix(cs_data_matrix)
+
+    
+    if method=='default':
+        cs_data_matrix_nooutliers_nonans = inpaint_spacetime_matrix(cs_data_matrix)
+    elif method=='smart':
+        cs_data_matrix_nooutliers_nonans = inpaint_spacetime_matrix_masklarge(cs_data_matrix, area_threshold =50 )
 
     df = pd.DataFrame(cs_data_matrix_nooutliers_nonans.T,columns=cs_transects_vector)
     df = df.set_index(cs_dates_vector)
     df.to_csv(csv_file.replace(".csv","_inpainted.csv"))
+    print(f"Saved inpainted data to {csv_file.replace('.csv','_inpainted.csv')}")
+
+
 
 
     plt.figure(figsize=(12,8))
