@@ -4,9 +4,9 @@
 ## written by Dr Daniel Buscombe, April 26-30, 2024
 
 ## Example usage, from cmd:
-## python download_topobathymap.py -s "Mattole" -f "/media/marda/FOURTB/SDS/Mattole1/ID_fgz1_datetime09-26-23__11_37_33/S2/ms/2015-10-04-19-20-18_S2_ID_fgz1_datetime09-26-23__11_37_33_ms.tif"
+## python download_topobathymap_geotiff.py -s "Mattole" -f "/media/marda/FOURTB/SDS/Mattole1/ID_fgz1_datetime09-26-23__11_37_33/S2/ms/2015-10-04-19-20-18_S2_ID_fgz1_datetime09-26-23__11_37_33_ms.tif"
 
-# python download_topobathymap.py -s "Klamath" -f "/media/marda/TWOTB/USGS/Doodleverse/github/SDStools/example_data/2017-10-02-18-57-29_L8_GREATER_KLAMATH_ms.tif"
+# python download_topobathymap_geotiff.py -s "Klamath" -f "/media/marda/TWOTB/USGS/Doodleverse/github/SDStools/example_data/2017-10-02-18-57-29_L8_GREATER_KLAMATH_ms.tif"
 
 
 import bathyreq

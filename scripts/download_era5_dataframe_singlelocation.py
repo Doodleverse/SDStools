@@ -39,6 +39,14 @@ def wavepower_deep(Hs, Tp):
     P_kW_m = P /1000
     return P_kW_m
 
+def wave_energy_deep(Hs):
+    """return wave energy based on deep water wave condition"""
+    rho = 1025
+    g = 9.81
+    E = (1/8)*rho*g*(Hs**2) #[J/m2]
+    return E
+
+
 def parse_arguments() -> argparse.Namespace:
     """
     Parse command-line arguments for the wave data download script.
@@ -181,9 +189,10 @@ def main():
                 df_dict['mwd']=data.mwd.values.squeeze()
     df_dict['wp']=wavepower_deep(df_dict['swh'], df_dict['pp1d'])
     df_dict['ws']=compute_setup_deep(df_dict['swh'], df_dict['pp1d'])
+    df_dict['we']=wave_energy_deep(df_dict['swh'])
 
     df = pd.DataFrame.from_dict(df_dict)
-    df.to_csv(f'{fileprefix}_{dataset}_swh_mwp_pp1d_mwd_wp_{lon}_{lat}_{start_year}_{end_year}.csv')
+    df.to_csv(f'{fileprefix}_{dataset}_swh_mwp_pp1d_mwd_wp_we_{lon}_{lat}_{start_year}_{end_year}.csv')
 
 
     #fig=plt.figure(figsize=(8,8))
