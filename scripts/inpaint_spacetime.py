@@ -4,7 +4,7 @@
 ## written by Dr Daniel Buscombe, May 1, 2024
 
 ## Example usage, from cmd:
-## python inpaint_spacetime.py -f "/media/marda/TWOTB/USGS/Doodleverse/github/SDStools/example_data/elwha_mainROI_df_distances_by_time_and_transect_CoastSat_nooutliers.csv"
+## python inpaint_spacetime.py -f /media/marda/TWOTB/USGS/Doodleverse/github/SDStools/example_data/elwha_mainROI_df_distances_by_time_and_transect_CoastSat_nooutliers.csv
 
 import argparse, os
 import matplotlib.pyplot as plt

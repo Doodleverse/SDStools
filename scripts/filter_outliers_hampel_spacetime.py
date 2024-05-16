@@ -5,7 +5,7 @@
 
 ## Example usage, from cmd:
 ## python filter_outliers_hampel_spacetime.py -f "/media/marda/TWOTB/USGS/Doodleverse/github/SDStools/example_data/transect_time_series_coastsat.csv"
-## python filter_outliers_hampel_spacetime.py -f "/media/marda/TWOTB/USGS/Doodleverse/github/SDStools/example_data/transect_time_series_coastsat.csv" -s 3 -i 5 -w 5
+## python filter_outliers_hampel_spacetime.py -f "/media/marda/TWOTB/USGS/Doodleverse/github/SDStools/example_data/transect_time_series_coastsat.csv" -s 3 -i 5 -w 0.05
 ## python filter_outliers_hampel_spacetime.py -f "/media/marda/TWOTB/USGS/Doodleverse/github/SDStools/example_data/transect_time_series_zoo.csv"
 
 import argparse
@@ -141,7 +141,6 @@ def hampel_filter(x: Union[List, pd.Series, np.ndarray], window_size: int = 5, n
     :param c: consistency constant. default is 1.4826, supposing the given timeseries values are normally distributed.
     :return: the outlier indices
     """
-
     return HampelFilter(window_size=window_size, n_sigma=n_sigma, c=c).apply(x).get_indices()
 
 
@@ -187,7 +186,7 @@ def parse_arguments() -> argparse.Namespace:
         "-W",
         "-w",
         dest="windowPerc",
-        type=int,
+        type=float,
         required=False,
         default=0.05,
         help="Set the windowPerc parameter.",
@@ -206,6 +205,7 @@ def implement_filter(cs_data_matrix, windowPerc, NoSTDsRemoved, iteration):
             continue
         else:
             window_size=int(windowPerc * len(SDS_timeseries))
+
         if window_size<=2:
             window_size = 3
             
@@ -215,6 +215,9 @@ def implement_filter(cs_data_matrix, windowPerc, NoSTDsRemoved, iteration):
 
         # Calculate window size based on the length of the timeseries
         window_size = max(3, int(windowPerc * len(SDS_timeseries)))
+
+        if (window_size % 2) == 0: 
+            window_size = window_size+1
 
         # Remove outliers using the Hampel filter
         outliers = hampel_filter(SDS_timeseries, window_size=window_size, n_sigma=NoSTDsRemoved) 

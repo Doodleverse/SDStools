@@ -1,58 +1,29 @@
 
-
 ## Takes a CSV file of SDS data (shorelines versus transects)
-## written by Dr Daniel Buscombe, May 1, 2024
+## written by Dr Daniel Buscombe, May, 2024
 
 ## Example usage, from cmd:
-## python denoise_inpainted_spacetime.py -f "/media/marda/TWOTB/USGS/Doodleverse/github/SDStools/example_data/transect_time_series_coastsat.csv"
+## python detrend_transect_timeseries.py -f /media/marda/TWOTB/USGS/Doodleverse/github/SDStools/example_data/transect_time_series_coastsat.csv -N 10
 
 import argparse, os
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from functools import partial
 from typing import List, Tuple
-from skimage.restoration import calibrate_denoiser, denoise_wavelet
-# rescale_sigma=True required to silence deprecation warnings
-_denoise_wavelet = partial(denoise_wavelet, rescale_sigma=True)
+import warnings
+warnings.filterwarnings("ignore")
 
-def filter_wavelet_auto(cs_matrix_inpaint):
-    """
-    Apply wavelet-based denoising to the input compressed sensing matrix.
+def detrend_shoreline_rel_start(input_matrix, N=10, axis_to_average=0):
+    "detrend a transect x time SDS matrix based on the first N values"
+    axis_to_average = int(axis_to_average)
+    if axis_to_average==0:
+        vec_start = np.nanmean(input_matrix[:N,:],axis=0)
+    else:
+        vec_start = np.nanmean(input_matrix[:,:N],axis=1)
 
-    Parameters:
-    - cs_matrix_inpaint: numpy.ndarray
-        The input compressed sensing matrix to be denoised.
+    shore_change = (input_matrix - vec_start).T
+    return shore_change
 
-    Returns:
-    - cs_inpaint_denoised: numpy.ndarray
-        The denoised compressed sensing matrix.
-
-    This function applies wavelet-based denoising to the input compressed sensing matrix using the following steps:
-    1. Define parameter ranges for calibrating the denoising algorithm.
-    2. Obtain a denoised image using default parameters of `denoise_wavelet`.
-    3. Calibrate the denoiser using the input compressed sensing matrix and the `_denoise_wavelet` function.
-    4. Obtain a denoised image using the calibrated denoiser.
-
-    Note: The `_denoise_wavelet` function is not defined in the provided code snippet.
-
-    Example usage:
-    cs_matrix = ...
-    denoised_matrix = filter_wavelet_auto(cs_matrix)
-    """
-    # Parameters to test when calibrating the denoising algorithm
-    parameter_ranges = {'sigma': np.arange(0.02, 0.2, 0.02),
-                        'wavelet': ['db1', 'db2'],
-                        'convert2ycbcr': [False, False]}
-
-    # Calibrate denoiser
-    calibrated_denoiser = calibrate_denoiser(cs_matrix_inpaint,
-                                            _denoise_wavelet,
-                                            denoise_parameters=parameter_ranges)
-
-    # Denoised image using calibrated denoiser
-    cs_inpaint_denoised = calibrated_denoiser(cs_matrix_inpaint)
-    return cs_inpaint_denoised
 
 def read_merged_transect_time_series_file(transect_time_series_file: str) -> Tuple[np.ndarray, pd.Series, List[str]]:
     """
@@ -85,9 +56,10 @@ def read_merged_transect_time_series_file(transect_time_series_file: str) -> Tup
 
     return data_matrix, dates_vector, transects_vector
 
+
 def parse_arguments() -> argparse.Namespace:
     """
-    Parse command-line arguments to filter a SDS data matrix script.
+    Parse command-line arguments for the  Hampel filter to remove outliers in SDS data matrix script.
     Arguments and their defaults are defined within the function.
     Returns:
     - argparse.Namespace: A namespace containing the script's command-line arguments.
@@ -103,14 +75,13 @@ def parse_arguments() -> argparse.Namespace:
         help="Set the name of the CSV file.",
     )
     parser.add_argument(
-        "-m",
-        "-M",
-        dest="method",
-        type=str,
+        "-n",
+        "-N",
+        dest="num_start_points",
+        type=int,
         required=True,
-        help="Set the method to use to denoise.",
+        help="Set the number of points to use to define the start.",
     )
-
 
     return parser.parse_args()
 
@@ -119,28 +90,34 @@ def parse_arguments() -> argparse.Namespace:
 def main():
     args = parse_arguments()
     csv_file = args.csv_file
-    method = args.method
-    
+    num_start_points = args.num_start_points
+    print(f"File: {csv_file}, Number of starting points to average over: {num_start_points}")
+
     ### input files
     cs_file = os.path.normpath(csv_file)
     ### read in data and column/row vectors
     cs_data_matrix, cs_dates_vector, cs_transects_vector = read_merged_transect_time_series_file(cs_file)
 
-    cs_data_matrix_nonans_denoised = filter_wavelet_auto(cs_data_matrix)
+    axis_to_average = np.where([i==len(cs_transects_vector) for i in cs_data_matrix.shape])[0]
 
-    df = pd.DataFrame(cs_data_matrix_nonans_denoised.T,columns=cs_transects_vector)
+    ## detrend data
+    cs_detrend = detrend_shoreline_rel_start(cs_data_matrix, N=num_start_points, axis_to_average = axis_to_average)
+
+    ## write out new file
+    df = pd.DataFrame(cs_detrend,columns=cs_transects_vector)
     df.set_index(cs_dates_vector)
-    df.to_csv(csv_file.replace(".csv","_denoised.csv"))
+    df.to_csv(cs_file.replace(".csv","_detrend.csv"))
 
+    ## make a plot
+    outfile = cs_file.replace(".csv","_detrend.png")
 
     plt.figure(figsize=(12,8))
     plt.subplot(121)
     plt.imshow(cs_data_matrix)
     plt.axis('off'); plt.title("a) Original", loc='left')
     plt.subplot(122)
-    plt.imshow(cs_data_matrix_nonans_denoised)
-    plt.axis('off'); plt.title("b) Denoised", loc='left')
-    outfile = csv_file.replace(".csv","_nooutliers.png")
+    plt.imshow(cs_detrend.T)
+    plt.axis('off'); plt.title("b) Detrend", loc='left')
     plt.savefig(outfile, dpi=200, bbox_inches='tight')
     plt.close()
 
