@@ -11,15 +11,15 @@
 ## python download_era5_dataframe_grid.py -i "my_location" -a 1984 -b 2023 -f geoJSON file
 
 import cdsapi
-import pandas as pd
+# import pandas as pd
 import numpy as np
 import xarray as xr
-import datetime as dt
+# import datetime as dt
 import geopandas as gpd
 
-import matplotlib.pyplot as plt
-import seaborn as sns
-sns.set_theme(style="ticks")
+# import matplotlib.pyplot as plt
+# import seaborn as sns
+# sns.set_theme(style="ticks")
 
 import argparse
 import warnings

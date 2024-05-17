@@ -1,9 +1,11 @@
 
 ## Takes a CSV file of SDS data (shorelines versus transects)
+## and subtracts the starting value (or an average of N starting points)
+## leaving each transect time-series relative to the starting position
 ## written by Dr Daniel Buscombe, May, 2024
 
 ## Example usage, from cmd:
-## python detrend_transect_timeseries.py -f /media/marda/TWOTB/USGS/Doodleverse/github/SDStools/example_data/transect_time_series_coastsat.csv -N 10
+## python detrend_relstart_transect_timeseries.py -f /media/marda/TWOTB/USGS/Doodleverse/github/SDStools/example_data/transect_time_series_coastsat.csv -N 10
 
 import argparse, os
 import matplotlib.pyplot as plt
@@ -105,7 +107,7 @@ def main():
 
     ## write out new file
     df = pd.DataFrame(cs_detrend,columns=cs_transects_vector)
-    df.set_index(cs_dates_vector)
+    df = df.set_index(cs_dates_vector)
     df.to_csv(cs_file.replace(".csv","_detrend.csv"))
 
     ## make a plot

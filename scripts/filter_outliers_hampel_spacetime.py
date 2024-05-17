@@ -48,6 +48,7 @@ def read_merged_transect_time_series_file(transect_time_series_file: str) -> Tup
     transects_vector = [t for t in merged_transect_time_series.T.index[1:] if 'date' not in t]
 
     return data_matrix, dates_vector, transects_vector
+
 class HampelFilter:
     """
     HampelFilter class for providing additional functionality such as checking the upper/lower boundaries for paramter tuning.
@@ -213,8 +214,8 @@ def implement_filter(cs_data_matrix, windowPerc, NoSTDsRemoved, iteration):
         if len(SDS_timeseries) < 2:
             continue
 
-        # Calculate window size based on the length of the timeseries
-        window_size = max(3, int(windowPerc * len(SDS_timeseries)))
+        # # Calculate window size based on the length of the timeseries
+        # window_size = max(3, int(windowPerc * len(SDS_timeseries)))
 
         if (window_size % 2) == 0: 
             window_size = window_size+1

@@ -15,9 +15,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.colors
 import rasterio
-# from rasterio.transform import from_origin
 from rasterio.transform import Affine
-import geopandas as gpd
+# import geopandas as gpd
 from rasterio.crs import CRS
 import rasterio.warp
 from shapely.geometry import box
