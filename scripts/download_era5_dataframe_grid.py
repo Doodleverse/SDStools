@@ -8,45 +8,22 @@
 ## written by Dr Daniel Buscombe, April-May, 2024
 
 ## Example usage, from cmd:
-## python download_era5_dataframe_grid.py -i "my_location" -a 1984 -b 2023 -f geoJSON file
+## python download_era5_dataframe_grid.py -i "my_location" -a 1984 -b 2023 -f geoJSON file -p 1
 
 import cdsapi
-# import pandas as pd
+import pandas as pd
 import numpy as np
 import xarray as xr
-# import datetime as dt
+import datetime as dt
 import geopandas as gpd
 
-# import matplotlib.pyplot as plt
-# import seaborn as sns
-# sns.set_theme(style="ticks")
+import matplotlib.pyplot as plt
+import seaborn as sns
+sns.set_theme(style="ticks")
 
 import argparse
 import warnings
 warnings.filterwarnings("ignore")
-
-#==========================================
-def compute_setup_deep(H,T):
-    """return setup (m) based on deep water wave condition"""
-    g = 9.81
-    L = (g*T**2) / (2*np.pi)
-    return 0.016*(np.sqrt(H*L))
-
-def wavepower_deep(Hs, Tp):
-    """return wave power (kW/m) based on deep water wave condition"""
-    rho = 1025
-    g = 9.81
-    P = (rho*(g**2)/(64*np.pi))*Tp*(Hs**2)
-    P_kW_m = P /1000
-    return P_kW_m
-
-def wave_energy_deep(Hs):
-    """return wave energy based on deep water wave condition"""
-    rho = 1025
-    g = 9.81
-    E = (1/8)*rho*g*(Hs**2)
-    return E
-
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -90,6 +67,18 @@ def parse_arguments() -> argparse.Namespace:
         required=True,
         help="Set the end year.",
     )
+
+    parser.add_argument(
+        "-p",
+        "-P",
+        dest="doplot",
+        type=int,
+        required=False,
+        default=0,
+        help="1=make a plot, 0=no plot (default).",
+    )
+
+
     return parser.parse_args()
 
 ##==========================================
@@ -99,6 +88,8 @@ def main():
     end_year = args.end_year
     fileprefix = args.fileprefix
     geofile = args.geofile
+    doplot = args.doplot
+
 
     print(f"Data downloading....from {start_year} to {end_year}")
 
@@ -144,7 +135,7 @@ def main():
             'month': mnths,    
             'day': days,
             'time': times,    
-            'grid': [0.25, 0.25],
+            'grid': [0.1, 0.1],
             'area': [maxlat, minlon, minlat, maxlon],  #[lat+offset, lon-offset, lat-offset, lon+offset], 
             }  
             
@@ -153,6 +144,46 @@ def main():
 
         # download the file 
         fl.download(f"./{fileprefix}_{dataset}_{v}.nc")
+
+
+
+    if doplot==1:
+        ##dostuff
+            
+        ##merge all nc data into a single csv
+        # loop thru each variable and read netcdf file contents
+        for counter,v in enumerate(['significant_height_of_combined_wind_waves_and_swell',
+            'mean_wave_period',
+            'peak_wave_period',
+            'mean_wave_direction']):
+            ## open dataset as xarray
+            data = xr.open_dataset(f'./{fileprefix}_{dataset}_{v}.nc')
+
+            if v == 'significant_height_of_combined_wind_waves_and_swell':
+                plt.figure(figsize=(16,12))
+                plt.subplot(2,2,counter+1)
+                data.swh.mean(axis=0).plot()
+
+            elif v == 'mean_wave_period':
+                # df_dict['mwp']=data.mwp.values.squeeze()
+
+                plt.subplot(2,2,counter+1)
+                data.mwp.mean(axis=0).plot()
+
+            elif v == 'peak_wave_period':
+                # df_dict['pp1d']=data.pp1d.values.squeeze()
+
+                plt.subplot(2,2,counter+1)
+                data.pp1d.mean(axis=0).plot()
+
+            elif v == 'mean_wave_direction':
+                # df_dict['mwd']=data.mwd.values.squeeze()
+
+                plt.subplot(2,2,counter+1)
+                data.mwd.mean(axis=0).plot()
+        #plt.show()
+        plt.savefig(f'{fileprefix}_mean_2d.png',dpi=300, bbox_inches='tight')
+        plt.close()
 
 
 if __name__ == "__main__":

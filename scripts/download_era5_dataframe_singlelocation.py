@@ -8,7 +8,7 @@
 ## written by Dr Daniel Buscombe, April-May, 2024
 
 ## Example usage, from cmd:
-## python download_era5_dataframe_singlelocation.py -f "my_location" -a 1984 -b 2023 -x -160.8052  -y 64.446
+## python download_era5_dataframe_singlelocation.py -f "my_location" -a 1984 -b 2023 -x -160.8052  -y 64.446 -w intermediate
 
 import cdsapi
 import pandas as pd
@@ -46,6 +46,19 @@ def wave_energy_deep(Hs):
     E = (1/8)*rho*g*(Hs**2) #[J/m2]
     return E
 
+def wavepower_intermediate(Hs, Tp, d=20):
+    """return wave power (kW/m) based on intermediate water wave condition"""
+    rho = 1025
+    g = 9.81
+    E = (1/16)*rho*g*Hs**2
+    Ldeep = g * Tp**2/(2*np.pi)
+    L = Ldeep * np.sqrt(np.tanh((2*np.pi*d/Ldeep)))
+    C = (g*Tp/(2*np.pi)) * np.tanh(2*np.pi*d/L)
+    n = 0.5 * (1 + ((4*np.pi*d/L)/(np.sinh(4*np.pi*d/L))))
+    Cg = C*n
+    P = E*Cg
+    P_kW_m = P /1000
+    return P_kW_m
 
 def parse_arguments() -> argparse.Namespace:
     """
@@ -96,6 +109,27 @@ def parse_arguments() -> argparse.Namespace:
         required=True,
         help="Set the end year.",
     )
+
+    parser.add_argument(
+        "-p",
+        "-P",
+        dest="doplot",
+        type=int,
+        required=False,
+        default=0,
+        help="1=make a plot, 0=no plot (default).",
+    )
+
+    parser.add_argument(
+        "-w",
+        "-W",
+        dest="water_depth",
+        type=str,
+        required=False,
+        default="deep",
+        help="deep or intermediate.",
+    )
+
     return parser.parse_args()
 
 ##==========================================
@@ -106,6 +140,9 @@ def main():
     start_year = args.start_year
     end_year = args.end_year
     fileprefix = args.fileprefix
+    doplot = args.doplot
+    water_depth = args.water_depth
+
     print(f"Data downloading.... Latitude: {lat}, Longitude: {lon}, from {start_year} to {end_year}")
 
     # # initialise cdsapi
@@ -187,7 +224,12 @@ def main():
                 df_dict['mwd']=np.nanmedian(data.mwd.values.squeeze(),axis=1)
             except:
                 df_dict['mwd']=data.mwd.values.squeeze()
-    df_dict['wp']=wavepower_deep(df_dict['swh'], df_dict['pp1d'])
+    ## wave power deep water
+    if water_depth == 'deep':
+        df_dict['wp']=wavepower_deep(df_dict['swh'], df_dict['pp1d'])
+    else: ##wave power intermediate
+        df_dict['wp']=wavepower_intermediate(df_dict['swh'], df_dict['pp1d'],d=20)
+
     df_dict['ws']=compute_setup_deep(df_dict['swh'], df_dict['pp1d'])
     df_dict['we']=wave_energy_deep(df_dict['swh'])
 
@@ -195,39 +237,39 @@ def main():
     df.to_csv(f'{fileprefix}_{dataset}_swh_mwp_pp1d_mwd_wp_we_{lon}_{lat}_{start_year}_{end_year}.csv')
 
 
-    #fig=plt.figure(figsize=(8,8))
-    sns.jointplot(x=df['swh'], y=df['mwd'], kind="hex", color="#4CB391")
-    plt.xlabel('Significant Wave Height (m)')
-    plt.ylabel('Mean Wave Direction (degrees)')
-    #plt.show()
-    plt.savefig(f'{fileprefix}_{dataset}_joint_and_marginal_distributions_Hs_Dmean.png',dpi=300, bbox_inches='tight')
-    plt.close()
+    if doplot==1:
+        #fig=plt.figure(figsize=(8,8))
+        sns.jointplot(x=df['swh'], y=df['mwd'], kind="hex", color="#4CB391")
+        plt.xlabel('Significant Wave Height (m)')
+        plt.ylabel('Mean Wave Direction (degrees)')
+        #plt.show()
+        plt.savefig(f'{fileprefix}_{dataset}_joint_and_marginal_distributions_Hs_Dmean.png',dpi=300, bbox_inches='tight')
+        plt.close()
 
-    #fig=plt.figure(figsize=(8,8))
-    sns.jointplot(x=df['swh'], y=df['mwp'], kind="hex", color="#4CB391")
-    plt.xlabel('Significant Wave Height (m)')
-    plt.ylabel('Mean Wave Period (s)')
-    #plt.show()
-    plt.savefig(f'{fileprefix}_{dataset}_joint_and_marginal_distributions_Hs_Tmean.png',dpi=300, bbox_inches='tight')
-    plt.close()
+        #fig=plt.figure(figsize=(8,8))
+        sns.jointplot(x=df['swh'], y=df['mwp'], kind="hex", color="#4CB391")
+        plt.xlabel('Significant Wave Height (m)')
+        plt.ylabel('Mean Wave Period (s)')
+        #plt.show()
+        plt.savefig(f'{fileprefix}_{dataset}_joint_and_marginal_distributions_Hs_Tmean.png',dpi=300, bbox_inches='tight')
+        plt.close()
 
-    #fig=plt.figure(figsize=(8,8))
-    sns.jointplot(x=df['swh'], y=df['pp1d'], kind="hex", color="#4CB391")
-    plt.xlabel('Significant Wave Height (m)')
-    plt.ylabel('Peak Wave Period (s)')
-    #plt.show()
-    plt.savefig(f'{fileprefix}_{dataset}_joint_and_marginal_distributions_Hs_Tpeak.png',dpi=300, bbox_inches='tight')
-    plt.close()
+        #fig=plt.figure(figsize=(8,8))
+        sns.jointplot(x=df['swh'], y=df['pp1d'], kind="hex", color="#4CB391")
+        plt.xlabel('Significant Wave Height (m)')
+        plt.ylabel('Peak Wave Period (s)')
+        #plt.show()
+        plt.savefig(f'{fileprefix}_{dataset}_joint_and_marginal_distributions_Hs_Tpeak.png',dpi=300, bbox_inches='tight')
+        plt.close()
 
-
-    #plot sales by date
-    plt.plot_date(df['date'].apply(pd.Timestamp), df.swh, 'k-')
-    #rotate x-axis ticks 45 degrees and right-aline
-    plt.xticks(rotation=45, ha='right')
-    # plt.axvline(dt.datetime(2011, 8, 28),color='r')
-    #plt.show()
-    plt.savefig(f'{fileprefix}_{dataset}_timeseries_Hs.png',dpi=300, bbox_inches='tight')
-    plt.close()
+        #plot sales by date
+        plt.plot_date(df['date'].apply(pd.Timestamp), df.swh, 'k-')
+        #rotate x-axis ticks 45 degrees and right-aline
+        plt.xticks(rotation=45, ha='right')
+        # plt.axvline(dt.datetime(2011, 8, 28),color='r')
+        #plt.show()
+        plt.savefig(f'{fileprefix}_{dataset}_timeseries_Hs.png',dpi=300, bbox_inches='tight')
+        plt.close()
 
 
 if __name__ == "__main__":

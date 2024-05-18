@@ -85,6 +85,16 @@ def parse_arguments() -> argparse.Namespace:
         help="Set the number of points to use to define the start.",
     )
 
+    parser.add_argument(
+        "-p",
+        "-P",
+        dest="doplot",
+        type=int,
+        required=False,
+        default=0,
+        help="1=make a plot, 0=no plot (default).",
+    )
+
     return parser.parse_args()
 
 
@@ -93,6 +103,7 @@ def main():
     args = parse_arguments()
     csv_file = args.csv_file
     num_start_points = args.num_start_points
+    doplot = args.doplot
     print(f"File: {csv_file}, Number of starting points to average over: {num_start_points}")
 
     ### input files
@@ -110,18 +121,18 @@ def main():
     df = df.set_index(cs_dates_vector)
     df.to_csv(cs_file.replace(".csv","_detrend.csv"))
 
-    ## make a plot
-    outfile = cs_file.replace(".csv","_detrend.png")
-
-    plt.figure(figsize=(12,8))
-    plt.subplot(121)
-    plt.imshow(cs_data_matrix)
-    plt.axis('off'); plt.title("a) Original", loc='left')
-    plt.subplot(122)
-    plt.imshow(cs_detrend.T)
-    plt.axis('off'); plt.title("b) Detrend", loc='left')
-    plt.savefig(outfile, dpi=200, bbox_inches='tight')
-    plt.close()
+    if doplot==1:
+        ## make a plot
+        outfile = cs_file.replace(".csv","_detrend.png")
+        plt.figure(figsize=(12,8))
+        plt.subplot(121)
+        plt.imshow(cs_data_matrix)
+        plt.axis('off'); plt.title("a) Original", loc='left')
+        plt.subplot(122)
+        plt.imshow(cs_detrend.T)
+        plt.axis('off'); plt.title("b) Detrend", loc='left')
+        plt.savefig(outfile, dpi=200, bbox_inches='tight')
+        plt.close()
 
 
 if __name__ == "__main__":

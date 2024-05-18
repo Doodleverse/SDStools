@@ -12,20 +12,10 @@ import numpy as np
 import pandas as pd
 from typing import List, Tuple
 from skimage.restoration import inpaint
-from skimage.morphology import remove_small_objects, remove_small_holes
 
 def inpaint_spacetime_matrix(input_matrix):
     mask = np.isnan(input_matrix)
     return inpaint.inpaint_biharmonic(input_matrix, mask)
-
-
-def inpaint_spacetime_matrix_masklarge(input_matrix, area_threshold =50 ):
-    mask = np.isnan(input_matrix)
-    mask = remove_small_objects(mask, area_threshold)
-    mask = remove_small_holes(mask, area_threshold)
-
-    return inpaint.inpaint_biharmonic(input_matrix, mask)
-
 
 def read_merged_transect_time_series_file(transect_time_series_file: str) -> Tuple[np.ndarray, pd.Series, List[str]]:
     """
@@ -76,14 +66,15 @@ def parse_arguments() -> argparse.Namespace:
         required=True,
         help="Set the name of the CSV file.",
     )
+
     parser.add_argument(
-        "-m",
-        "-M",
-        dest="method",
-        type=str,
+        "-p",
+        "-P",
+        dest="doplot",
+        type=int,
         required=False,
-        default='default',
-        help="Set the name of the method - 'default' or 'smart'. Setting the method to 'smart' in the script applies biharmonic inpainting to the data matrix after removing small objects and holes from the mask of missing values.",
+        default=0,
+        help="1=make a plot, 0=no plot (default).",
     )
 
     return parser.parse_args()
@@ -93,39 +84,31 @@ def parse_arguments() -> argparse.Namespace:
 def main():
     args = parse_arguments()
     csv_file = args.csv_file
-    method = args.method
-    
+    doplot = args.doplot
     
     ### input files
     cs_file = os.path.normpath(csv_file)
     ### read in data and column/row vectors
     cs_data_matrix, cs_dates_vector, cs_transects_vector = read_merged_transect_time_series_file(cs_file)
 
-
-    
-    if method=='default':
-        cs_data_matrix_nooutliers_nonans = inpaint_spacetime_matrix(cs_data_matrix)
-    elif method=='smart':
-        cs_data_matrix_nooutliers_nonans = inpaint_spacetime_matrix_masklarge(cs_data_matrix, area_threshold =50 )
+    cs_data_matrix_nooutliers_nonans = inpaint_spacetime_matrix(cs_data_matrix)
 
     df = pd.DataFrame(cs_data_matrix_nooutliers_nonans.T,columns=cs_transects_vector)
     df = df.set_index(cs_dates_vector)
     df.to_csv(csv_file.replace(".csv","_inpainted.csv"))
     print(f"Saved inpainted data to {csv_file.replace('.csv','_inpainted.csv')}")
 
-
-
-
-    plt.figure(figsize=(12,8))
-    plt.subplot(121)
-    plt.imshow(cs_data_matrix)
-    plt.axis('off'); plt.title("a) Original", loc='left')
-    plt.subplot(122)
-    plt.imshow(cs_data_matrix_nooutliers_nonans)
-    plt.axis('off'); plt.title("b) Inpainted", loc='left')
-    outfile = csv_file.replace(".csv","_inpainted.png")
-    plt.savefig(outfile, dpi=200, bbox_inches='tight')
-    plt.close()
+    if doplot==1:
+        plt.figure(figsize=(12,8))
+        plt.subplot(121)
+        plt.imshow(cs_data_matrix)
+        plt.axis('off'); plt.title("a) Original", loc='left')
+        plt.subplot(122)
+        plt.imshow(cs_data_matrix_nooutliers_nonans)
+        plt.axis('off'); plt.title("b) Inpainted", loc='left')
+        outfile = csv_file.replace(".csv","_inpainted.png")
+        plt.savefig(outfile, dpi=200, bbox_inches='tight')
+        plt.close()
 
 
 if __name__ == "__main__":

@@ -65,6 +65,17 @@ def parse_arguments() -> argparse.Namespace:
         required=True,
         help="Set the name of the site.",
     )
+
+    parser.add_argument(
+        "-p",
+        "-P",
+        dest="doplot",
+        type=int,
+        required=False,
+        default=0,
+        help="1=make a plot, 0=no plot (default).",
+    )
+
     return parser.parse_args()
 
 
@@ -73,6 +84,8 @@ def main():
     args = parse_arguments()
     site = args.site
     geofile = args.geofile
+    doplot = args.doplot
+
 
     gdf = gpd.read_file(geofile, driver='GeoJSON')
 
@@ -109,12 +122,13 @@ def main():
     cut_terrain_map = matplotlib.colors.LinearSegmentedColormap.from_list('cut_terrain', colors)
     norm = FixPointNormalize(sealevel=0, vmax=100)
 
-    plt.subplot(111,aspect='equal')
-    plt.pcolormesh(lonvec,latvec,data,cmap=cut_terrain_map, norm=norm) 
-    plt.colorbar(extend='both')
-    # plt.show()
-    plt.savefig(f'{site}_topobathy_{minlon}_{maxlon}_{minlat}_{maxlat}.png', dpi=300, bbox_inches='tight')
-    plt.close()
+    if doplot==1:
+        plt.subplot(111,aspect='equal')
+        plt.pcolormesh(lonvec,latvec,data,cmap=cut_terrain_map, norm=norm) 
+        plt.colorbar(extend='both')
+        # plt.show()
+        plt.savefig(f'{site}_topobathy_{minlon}_{maxlon}_{minlat}_{maxlat}.png', dpi=300, bbox_inches='tight')
+        plt.close()
 
 
     xres = (maxlon - minlon) / data.shape[1]

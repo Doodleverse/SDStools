@@ -1,7 +1,7 @@
 
 
-## Takes a CSV file of SDS data (shorelines versus transects)
-## written by Dr Daniel Buscombe, May 1, 2024
+## Takes a CSV file of SDS data (shorelines versus transects) and filters outliers
+## written by Dr Daniel Buscombe, May, 2024
 
 ## Example usage, from cmd:
 ## python filter_outliers_hampel_spacetime.py -f "/media/marda/TWOTB/USGS/Doodleverse/github/SDStools/example_data/transect_time_series_coastsat.csv"
@@ -193,6 +193,16 @@ def parse_arguments() -> argparse.Namespace:
         help="Set the windowPerc parameter.",
     )
 
+    parser.add_argument(
+        "-p",
+        "-P",
+        dest="doplot",
+        type=int,
+        required=False,
+        default=0,
+        help="1=make a plot, 0=no plot (default).",
+    )
+
     return parser.parse_args()
 
 def implement_filter(cs_data_matrix, windowPerc, NoSTDsRemoved, iteration):
@@ -209,13 +219,6 @@ def implement_filter(cs_data_matrix, windowPerc, NoSTDsRemoved, iteration):
 
         if window_size<=2:
             window_size = 3
-            
-        # Skip if the timeseries has less than 2 elements
-        if len(SDS_timeseries) < 2:
-            continue
-
-        # # Calculate window size based on the length of the timeseries
-        # window_size = max(3, int(windowPerc * len(SDS_timeseries)))
 
         if (window_size % 2) == 0: 
             window_size = window_size+1
@@ -241,7 +244,7 @@ def main():
     windowPerc = args.windowPerc
     iterations = args.iterations
     NoSTDsRemoved = args.NoSTDsRemoved
-    
+    doplot = args.doplot
 
     print(f"Window as a percent of data length: {windowPerc}")
     print(f"Number of iterations: {iterations}")
@@ -265,17 +268,18 @@ def main():
     print(f"Output written to {os.path.abspath(csv_file.replace('.csv','_nooutliers.csv'))}")
 
 
-    plt.figure(figsize=(12,8))
-    plt.subplot(121)
-    plt.imshow(cs_data_matrix)
-    plt.axis('off'); plt.title("a) Original", loc='left')
-    plt.subplot(122)
-    plt.imshow(cs_data_matrix_outliers_removed)
-    plt.axis('off'); plt.title("b) Outliers removed", loc='left')
-    outfile = csv_file.replace(".csv","_nooutliers.png")
-    plt.savefig(outfile, dpi=200, bbox_inches='tight')
-    print(f"Figure save saved to  {os.path.abspath(outfile)}")
-    plt.close()
+    if doplot==1:
+        plt.figure(figsize=(12,8))
+        plt.subplot(121)
+        plt.imshow(cs_data_matrix)
+        plt.axis('off'); plt.title("a) Original", loc='left')
+        plt.subplot(122)
+        plt.imshow(cs_data_matrix_outliers_removed)
+        plt.axis('off'); plt.title("b) Outliers removed", loc='left')
+        outfile = csv_file.replace(".csv","_nooutliers.png")
+        plt.savefig(outfile, dpi=200, bbox_inches='tight')
+        print(f"Figure save saved to  {os.path.abspath(outfile)}")
+        plt.close()
 
 
 if __name__ == "__main__":

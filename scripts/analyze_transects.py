@@ -304,11 +304,9 @@ def main():
     autocorr_mins = []
     lag_mins = []
 
-    sine_periods = []
-    sine_amplitudes = []
-    sine_phases = []
-    sine_rmse = []
-    sine_errormax = []
+    trend_mat = []
+    season_mat = []
+    autocorr_mat = []
 
     for k in list(df_resampled.columns.values):
         stationary_bool = adf_test(df_resampled[k])
@@ -316,87 +314,31 @@ def main():
 
         autocorr_max, lag_max, autocorr_min, lag_min, autocorr, lags = compute_autocorrelation(df_resampled[k])
 
-        # res = STL(df_resampled[k].values).fit()
-
-        # res = statsmodels.tsa.seasonal.seasonal_decompose(df_resampled[k].values, period = 14)
+        stl = STL(df_demean[k], period=12, robust=True)
+        res_robust = stl.fit()
+        trend_mat.append(res_robust.trend)
+        season_mat.append(res_robust.seasonal)
+        autocorr_mat.append(autocorr)
 
         autocorr_maxs.append(autocorr_max)
         lag_maxs.append(lag_max)
         autocorr_mins.append(autocorr_min)
         lag_mins.append(lag_min)
 
-        try:
-            sin_result = fit_sine(df_demean.index,
-                                    df_demean[k].values,
-                                    lag_min,
-                                    pd.Timedelta(new_timedelta))
-            sine_periods.append(sin_result.period)
-            sine_amplitudes.append(sin_result.amp)
-            sine_phases.append(sin_result.phase)
-            sine_rmse.append(sin_result.rmse)
-            sine_errormax.append(sin_result.error_max)
-        except:
-            sine_periods.append(np.nan)
-            sine_amplitudes.append(np.nan)
-            sine_phases.append(np.nan)
-            sine_rmse.append(np.nan)
-            sine_errormax.append(np.nan)
+
+    trend2d = np.dstack(trend_mat).squeeze().T
+    season2d = np.dstack(season_mat).squeeze().T
+    auto2d = np.dstack(autocorr_mat).squeeze().T
 
     out_dict = {}
     out_dict['stationarity'] = np.array(stationary_bool,dtype='int')
 
 
-
-
-
-
-
-
-            
-    #     approximate_entropy = compute_approximate_entropy(df_de_meaned['position'],
-    #                                                         2,
-    #                                                         np.std(df_de_meaned['position']))
-
-    #     slope = np.nan
-    #     intercept = np.nan
-    #     stderr = np.nan
-    #     intercept_stderr = np.nan
-    #     r_sq = np.nan
-
-    # else:
-
-    #     trend_result, x = get_linear_trend(df_med_filt)
-    #     df_de_trend, df_trend = de_trend_timeseries(df_med_filt, trend_result, x)
         
-    #     ##Step 5: De-mean the timeseries
-    #     df_de_meaned = de_mean_timeseries(df_de_trend)
-    #     autocorr_max, lag_max, autocorr_min, lag_min, autocorr, lags = plot_autocorrelation(output_folder,
-    #                                                                                         name,
-    #                                                                                         df_de_meaned)
-    #     try:
-    #         sin_result = fit_sine(df_de_meaned.index,
-    #                               df_de_meaned['position'],
-    #                               lag_min,
-    #                               pd.Timedelta(new_timedelta),
-    #                               output_folder)
-    #     except:
-    #         sin_result = {'period':np.nan,
-    #                       'amp':np.nan,
-    #                       'phase':np.nan,
-    #                       'rmse':np.nan,
-    #                       'error_max':np.nan
-    #                       }
-    #     approximate_entropy = compute_approximate_entropy(df_de_meaned['position'],
-    #                                                       2,
-    #                                                       np.std(df_de_meaned['position']))
+    approximate_entropy = compute_approximate_entropy(df_de_meaned['position'],
+                                                        2,
+                                                        np.std(df_de_meaned['position']))
 
-
-    #     slope = trend_result.slope
-    #     intercept = trend_result.intercept
-    #     stderr = trend_result.stderr
-    #     intercept_stderr = trend_result.intercept_stderr
-    #     r_sq = trend_result.rvalue**2
-        
 
     # ##Put results into dictionary
     # timeseries_analysis_result = {'stationary_bool':stationary_bool,

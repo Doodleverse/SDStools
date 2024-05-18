@@ -69,6 +69,17 @@ def parse_arguments() -> argparse.Namespace:
         required=True,
         help="Set the name of the site.",
     )
+
+    parser.add_argument(
+        "-p",
+        "-P",
+        dest="doplot",
+        type=int,
+        required=False,
+        default=0,
+        help="1=make a plot, 0=no plot (default).",
+    )
+
     return parser.parse_args()
 
 
@@ -77,6 +88,7 @@ def main():
     args = parse_arguments()
     site = args.site
     geofile = args.geofile
+    doplot = args.doplot
 
 
     with rasterio.open(geofile) as src_dataset:
@@ -119,12 +131,13 @@ def main():
     cut_terrain_map = matplotlib.colors.LinearSegmentedColormap.from_list('cut_terrain', colors)
     norm = FixPointNormalize(sealevel=0, vmax=100)
 
-    plt.subplot(111,aspect='equal')
-    plt.pcolormesh(lonvec,latvec,data,cmap=cut_terrain_map, norm=norm) 
-    plt.colorbar(extend='both')
-    # plt.show()
-    plt.savefig(f'{site}_topobathy_{minlon}_{maxlon}_{minlat}_{maxlat}.png', dpi=300, bbox_inches='tight')
-    plt.close()
+    if doplot==1:
+        plt.subplot(111,aspect='equal')
+        plt.pcolormesh(lonvec,latvec,data,cmap=cut_terrain_map, norm=norm) 
+        plt.colorbar(extend='both')
+        # plt.show()
+        plt.savefig(f'{site}_topobathy_{minlon}_{maxlon}_{minlat}_{maxlat}.png', dpi=300, bbox_inches='tight')
+        plt.close()
 
 
     xres = (maxlon - minlon) / data.shape[1]
@@ -148,29 +161,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-    # with rasterio.open(
-    #         f"{site}_topobathy.tif",
-    #         mode="w",
-    #         driver="GTiff",
-    #         height=data.shape[0],
-    #         width=data.shape[1],
-    #         count=1,
-    #         dtype=data.dtype,
-    #         crs=kwds['crs'],
-    #         transform=kwds['transform'],
-    # ) as new_dataset:
-    #         new_dataset.write(data, 1)
-
-    # transform = from_origin(minlon, minlat, data.shape[0]/(maxlon-minlon), data.shape[1]/(maxlat-minlat))
-
-    # data = np.flipud(data)
-    # new_dataset = rasterio.open(f'{site}_method2.tif', 'w', driver='GTiff',
-    #                             height = data.shape[0], width = data.shape[1],
-    #                             count=1, dtype=str(data.dtype), 
-    #                             crs='+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs',
-    #                             transform=transform)
-
-    # new_dataset.write(data, indexes=1)
-    # new_dataset.close()

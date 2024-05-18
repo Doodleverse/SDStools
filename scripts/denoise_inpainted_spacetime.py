@@ -111,6 +111,15 @@ def parse_arguments() -> argparse.Namespace:
         help="Set the method to use to denoise.",
     )
 
+    parser.add_argument(
+        "-p",
+        "-P",
+        dest="doplot",
+        type=int,
+        required=False,
+        default=0,
+        help="1=make a plot, 0=no plot (default).",
+    )
 
     return parser.parse_args()
 
@@ -120,7 +129,8 @@ def main():
     args = parse_arguments()
     csv_file = args.csv_file
     method = args.method
-    
+    doplot = args.doplot
+
     ### input files
     cs_file = os.path.normpath(csv_file)
     ### read in data and column/row vectors
@@ -133,16 +143,17 @@ def main():
     df.to_csv(csv_file.replace(".csv","_denoised.csv"))
 
 
-    plt.figure(figsize=(12,8))
-    plt.subplot(121)
-    plt.imshow(cs_data_matrix)
-    plt.axis('off'); plt.title("a) Original", loc='left')
-    plt.subplot(122)
-    plt.imshow(cs_data_matrix_nonans_denoised)
-    plt.axis('off'); plt.title("b) Denoised", loc='left')
-    outfile = csv_file.replace(".csv","_nooutliers.png")
-    plt.savefig(outfile, dpi=200, bbox_inches='tight')
-    plt.close()
+    if doplot==1:
+        plt.figure(figsize=(12,8))
+        plt.subplot(121)
+        plt.imshow(cs_data_matrix)
+        plt.axis('off'); plt.title("a) Original", loc='left')
+        plt.subplot(122)
+        plt.imshow(cs_data_matrix_nonans_denoised)
+        plt.axis('off'); plt.title("b) Denoised", loc='left')
+        outfile = csv_file.replace(".csv","_nooutliers.png")
+        plt.savefig(outfile, dpi=200, bbox_inches='tight')
+        plt.close()
 
 
 if __name__ == "__main__":
