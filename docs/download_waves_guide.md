@@ -1,32 +1,36 @@
-# Usage Guide for filter_outliers_hampel_spacetime.py
+# Usage Guide for download_era5_dataframe_singlelocation.py and download_era5_dataframe_grid.py
 
-This script removes outliers from time series data produced by CoastSeg using the Hampel filter, which identifies outliers by comparing each data point to the median of a sliding window centered around it. If a data point deviates from the median by more than a specified threshold, it is considered an outlier and can be replaced with the median value. This process helps in cleaning and smoothing time series files, such as `raw_transect_time_series.csv` & `tidally_corrected_transect_time_series.csv`, based on user-defined parameters for threshold, iterations, and window size.
+This script downloads wave data from ERA5-reanalysis
 
 ## Need Help
 
 To view the help documentation for the script, use the following command:
 
 ```bash
-python filter_outliers_hampel_spacetime.py --help
+python download_era5_dataframe_singlelocation.py --help
+```
+
+```bash
+python download_era5_dataframe_grid.py --help
 ```
 
 # Examples
 
 ## Example #1: Basic Usage
 
-This example removes the outliers from the `raw_transect_time_series.csv` file using the default parameters:
+This example downloads waves at a single point
 
 ```python
-python filter_outliers_hampel_spacetime.py -f "/path/to/SDStools/example_data/raw_transect_time_series.csv"
+python download_era5_dataframe_singlelocation.py -f 
 ```
 
-## Example #2: Custom Parameters
-
-This removes outliers from the `raw_transect_time_series.csv` using the following parameters :
+or, for 2D measurements
 
 ```python
-python filter_outliers_hampel_spacetime.py -f "/path/to/SDStools/example_data/raw_transect_time_series.csv" -s 3 -i 5 -w 0.20
+python download_era5_dataframe_grid.py -f 
 ```
+
+<!-- 
 
 - `-s`: Sets the integer threshold for outlier detection. Here it is set to 3.
 
@@ -53,4 +57,4 @@ The window size in the Hampel filter specifies the span of data points (as a per
 <details>
 <summary>More details</summary>
 A flag to make (or suppress) a plot
-</details>
+</details> -->
