@@ -1,7 +1,7 @@
 
 ## Takes a CSV file of SDS data (shorelines versus transects)
 ## and computes statistics per transect
-## written by Dr Daniel Buscombe, May, 2024
+## written by Dr Daniel Buscombe and Dr Mark Lundine, May 2024
 
 ## Example usage, from cmd:
 ## python analyze_transects.py -f /media/marda/TWOTB/USGS/Doodleverse/github/SDStools/example_data/transect_time_series_coastsat.csv
@@ -11,62 +11,45 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 from statsmodels.tsa.stattools import adfuller
+from statsmodels.tsa.seasonal import STL
 import os
 import scipy
 from typing import List, Tuple
 import datetime
 import warnings
 warnings.filterwarnings("ignore")
+from tqdm import tqdm
 
-from statsmodels.tsa.seasonal import STL
 
-def fit_sine(t, y, lag, timedelta):
+def parse_arguments() -> argparse.Namespace:
     """
-    Fitting a sine wave to data
-    adapted from https://stackoverflow.com/questions/16716302/how-do-i-fit-a-sine-curve-to-my-data-with-pylab-and-numpy
-    inputs:
-    t (array of datetimes)
-    y (array of shoreline poisition)
-    lag (int): number of lags
-    timedelta (datetime.TimeDelta): time spacing of trace
-    output_folder (path): path to output figure to
-    outputs:
-    result_dict: sine wave fit params
+    Parse command-line arguments for the stats script
+    Arguments and their defaults are defined within the function.
+    Returns:
+    - argparse.Namespace: A namespace containing the script's command-line arguments.
     """
-    # fig_save_path = os.path.join(output_folder, 'sin_fit.png')
-    tt = np.arange(0, len(t), 1)
-    yy = np.array(y)
-    guess_period = lag*2
-    guess_freq = 1./guess_period
-    guess_amp = (np.max(yy)-np.min(yy))/2
-    guess_offset = np.mean(yy)
-    guess = np.array([guess_amp, 2.*np.pi*guess_freq, 0.])
+    parser = argparse.ArgumentParser(description="Script to compute statistics per transect in an SDS matrix")
 
-    def sinfunc(t, A, w, p):  return A * np.sin(w*t + p)
-    
-    popt, pcov = scipy.optimize.curve_fit(sinfunc,
-                                          tt,
-                                          yy,
-                                          p0=guess,
-                                          maxfev=5000,
-                                          bounds = ((0, 2*np.pi*guess_freq/2, 0),
-                                                    (np.max(yy), 2*np.pi*guess_freq*2, 2*np.pi)
-                                                    )
-                                          )
-    A, w, p = popt
-    f = w/(2.*np.pi)
-    fitfunc = lambda t: A * np.sin(w*t + p)
-    period = 1./f
-    period = period*timedelta
-    rmse = np.sqrt((np.square(fitfunc(tt) - yy)).mean(axis=0))
-    error_max = max(np.abs(fitfunc(tt)-yy))
-    result_dict = {"amp": A,
-                   "phase": p,
-                   "period": period,
-                   "rmse":rmse,
-                   "error_max":error_max}
+    parser.add_argument(
+        "-f",
+        "-F",
+        dest="csv_file",
+        type=str,
+        required=True,
+        help="Set the name of the CSV file.",
+    )
 
-    return result_dict
+    parser.add_argument(
+        "-p",
+        "-P",
+        dest="doplot",
+        type=int,
+        required=False,
+        default=0,
+        help="1=make a plot, 0=no plot (default).",
+    )
+
+    return parser.parse_args()
 
 def adf_test(timeseries):
     """
@@ -110,7 +93,7 @@ def get_linear_trend(df):
     """
     
     datetimes = np.array(df.index)
-    shore_pos = np.array(df['position'])
+    shore_pos = np.array(df.values)
     datetimes_seconds = [None]*len(datetimes)
     initial_time = datetimes[0]
     for i in range(len(df)):
@@ -123,8 +106,7 @@ def get_linear_trend(df):
     x = datetimes_years
     y = shore_pos
     lls_result = scipy.stats.linregress(x,y)
-    return lls_result, x
-
+    return lls_result.slope, lls_result.intercept,lls_result.rvalue, lls_result.pvalue, lls_result.stderr, lls_result.intercept_stderr #, x
 
 
 def compute_approximate_entropy(U, m, r):
@@ -176,29 +158,8 @@ def read_merged_transect_time_series_file(transect_time_series_file: str) -> Tup
     return data_matrix, dates_vector, transects_vector
 
 
-def parse_arguments() -> argparse.Namespace:
-    """
-    Parse command-line arguments for the stats script
-    Arguments and their defaults are defined within the function.
-    Returns:
-    - argparse.Namespace: A namespace containing the script's command-line arguments.
-    """
-    parser = argparse.ArgumentParser(description="Script to compute statistics per transect in an SDS matrix")
-
-    parser.add_argument(
-        "-f",
-        "-F",
-        dest="csv_file",
-        type=str,
-        required=True,
-        help="Set the name of the CSV file.",
-    )
-
-    return parser.parse_args()
-
-
 def detrend_shoreline_rel_mean(input_matrix):
-    "doc string here"
+    "subtract a stable (N-average) initial position from shoreline time-series"
     shore_change = (input_matrix - input_matrix.mean(axis=0)).T
     return shore_change
 
@@ -228,7 +189,6 @@ def resample_timeseries(df, timedelta):
     """
     Resamples the timeseries according to the provided timedelta
     """
-
     df2 = df.loc[~df.index.duplicated(), :]
     oidx = df2.index
     nidx = pd.date_range(oidx.min(), oidx.max(), freq=timedelta)
@@ -236,8 +196,6 @@ def resample_timeseries(df, timedelta):
 
     # new_df = df2.resample(timedelta).mean()
     return new_df
-
-
 
 def compute_autocorrelation(df):
     """
@@ -256,6 +214,7 @@ def compute_autocorrelation(df):
     """
     
     x = pd.plotting.autocorrelation_plot(df)
+    plt.close('all')
     lags = x.lines[-1].get_xdata()
     autocorr = x.lines[-1].get_ydata()
 
@@ -263,16 +222,18 @@ def compute_autocorrelation(df):
     idx2 = autocorr.argmin()
     autocorr_max = np.max(autocorr)
     autocorr_min = np.min(autocorr)
-    lag_max = lags[idx]
+    # lag_max = lags[idx]
     lag_min = lags[idx2]
     
-    return autocorr_max, lag_max, autocorr_min, lag_min, autocorr, lags
+    return autocorr_min, lag_min, autocorr, lags
 
 
 ##==========================================
 def main():
     args = parse_arguments()
     csv_file = args.csv_file
+    doplot = args.doplot
+
     print(f"Analyzing each transect in file: {csv_file}")
 
     ##which_timedelta (str): 'minimum' 'average' or 'maximum' or 'custom', this is what the timeseries is resampled at
@@ -290,81 +251,96 @@ def main():
     ##Step 2: Compute time delta
     new_timedelta = compute_time_delta(df_demean, which_timedelta)
 
-
     df = pd.DataFrame(cs_data_matrix.T,columns=cs_transects_vector)
     df = df.set_index(cs_dates_vector)
 
     ##Step 4: Resample timeseries to the new timedelta
     df_resampled = resample_timeseries(df, new_timedelta)
 
-
+    ## re-allocate empty lists for outputs
     stationarity = [] 
-    autocorr_maxs = []
-    lag_maxs = []
     autocorr_mins = []
     lag_mins = []
+    entropy = []
+    linear_trend_slopes = []
+    linear_trend_intercepts = []
+    linear_trend_rvalues = []
+    linear_trend_pvalues = []
+    linear_trend_stderr = []
+    linear_trend_intercept_stderr = []
 
     trend_mat = []
     season_mat = []
     autocorr_mat = []
-
-    for k in list(df_resampled.columns.values):
+    weights_mat = []
+    ## cycle through each transect time-series and make stats
+    for k in tqdm(list(df_resampled.columns.values)):
         stationary_bool = adf_test(df_resampled[k])
         stationarity.append(stationary_bool)
 
-        autocorr_max, lag_max, autocorr_min, lag_min, autocorr, lags = compute_autocorrelation(df_resampled[k])
+        sl, intercept, rvalue, pvalue, stderr, int_stderr = get_linear_trend(df_resampled[k])
+        linear_trend_slopes.append(sl)
+        linear_trend_intercepts.append(intercept)
+        linear_trend_rvalues.append(rvalue)
+        linear_trend_pvalues.append(pvalue)
+        linear_trend_stderr.append(stderr)
+        linear_trend_intercept_stderr.append(int_stderr)
+
+        autocorr_min, lag_min, autocorr, lags = compute_autocorrelation(df_resampled[k])
+        approx_entropy = compute_approximate_entropy(df_demean[k].values,2,np.std(df_demean[k].values))
 
         stl = STL(df_demean[k], period=12, robust=True)
         res_robust = stl.fit()
         trend_mat.append(res_robust.trend)
         season_mat.append(res_robust.seasonal)
         autocorr_mat.append(autocorr)
+        weights_mat.append(res_robust.weights)
 
-        autocorr_maxs.append(autocorr_max)
-        lag_maxs.append(lag_max)
         autocorr_mins.append(autocorr_min)
         lag_mins.append(lag_min)
+        entropy.append(approx_entropy)
 
+
+    ### create dictionary for output to csv
+    out_dict = {}
+    out_dict['stationarity'] = np.array(stationarity,dtype='int')
+    out_dict['autocorr_min'] = np.array(autocorr_mins,dtype='float')
+    out_dict['lag_min'] = np.array(lag_mins,dtype='int')
+    out_dict['entropy'] = np.array(entropy,dtype='float')
+
+    out_dict['linear_trend_slopes'] = np.array(linear_trend_slopes,dtype='float')
+    out_dict['linear_trend_intercepts'] = np.array(linear_trend_intercepts,dtype='float')
+    out_dict['linear_trend_rvalues'] = np.array(linear_trend_rvalues,dtype='float')
+    out_dict['linear_trend_pvalues'] = np.array(linear_trend_pvalues,dtype='float')
+    out_dict['linear_trend_stderr'] = np.array(linear_trend_stderr,dtype='float')
+    out_dict['linear_trend_intercept_stderr'] = np.array(linear_trend_intercept_stderr,dtype='float')
+
+    ## make output dataframe and export
+    output_df = pd.DataFrame.from_dict(out_dict).T
+    output_df.columns = cs_transects_vector
+    output_df = output_df.T
+    output_df.to_csv(cs_file.replace(".csv","_stats_per_transect.csv"))
 
     trend2d = np.dstack(trend_mat).squeeze().T
     season2d = np.dstack(season_mat).squeeze().T
     auto2d = np.dstack(autocorr_mat).squeeze().T
+    weights2d = np.dstack(autocorr_mat).squeeze().T
 
-    out_dict = {}
-    out_dict['stationarity'] = np.array(stationary_bool,dtype='int')
+    np.savez(cs_file.replace(".csv","_stats_timeseries.npz"), trend2d=trend2d, season2d=season2d, auto2d=auto2d, weights2d=weights2d, cs_transects_vector=cs_transects_vector, cs_dates_vector=cs_dates_vector, cs_data_matrix_demeaned=cs_data_matrix_demeaned, df_resampled=df_resampled)
 
-
+    if doplot==1:
+        ## make a plot
+        plt.figure(figsize=(12,8))
+        plt.subplot(131); plt.imshow(trend2d.T,vmin=np.percentile(trend2d,2),vmax=np.percentile(trend2d,98))
+        cb=plt.colorbar(); cb.set_label('Trend (m)')
+        plt.xlabel('Transect'); plt.ylabel('Time')
+        plt.subplot(132); plt.imshow(season2d.T, vmin=np.percentile(season2d,2),vmax=np.percentile(season2d,98))
+        cb=plt.colorbar(); cb.set_label('Seasonality (m)')
+        plt.subplot(133); plt.imshow(auto2d.T,vmin=0,vmax=1)
+        cb=plt.colorbar(); cb.set_label('Autocorrelation (-)')
+        plt.savefig(cs_file.replace(".csv","_stats_timeseries.png"), dpi=200, bbox_inches='tight')
+        plt.close()
         
-    approximate_entropy = compute_approximate_entropy(df_de_meaned['position'],
-                                                        2,
-                                                        np.std(df_de_meaned['position']))
-
-
-    # ##Put results into dictionary
-    # timeseries_analysis_result = {'stationary_bool':stationary_bool,
-    #                               'computed_trend':slope,
-    #                               'computed_intercept':intercept,
-    #                               'trend_unc':stderr,
-    #                               'intercept_unc':intercept_stderr,
-    #                               'r_sq':r_sq,
-    #                               'autocorr_max':autocorr_max,
-    #                               'lag_max':str(lag_max*new_timedelta),
-    #                               'autocorr_min':autocorr_min,
-    #                               'lag_min':str(lag_min*new_timedelta),
-    #                               'new_timedelta':str(new_timedelta),
-    #                               'snr_no_nans':snr_no_nans,
-    #                               'snr_median_filter':snr_median_filter,
-    #                               'approx_entropy':approximate_entropy,
-    #                               'period':sin_result['period'],
-    #                               'amplitude':sin_result['amp'],
-    #                               'phase':sin_result['phase'],
-    #                               'sin_rmse':sin_result['rmse'],
-    #                               'sin_error_max':sin_result['error_max']}
-
-
-    # output_df = pd.DataFrame(timeseries_analysis_result)
-    # output_path = os.path.join(output_folder, name+'_resampled.csv')
-    # output_df.to_csv(output_path)
 
 
 if __name__ == "__main__":

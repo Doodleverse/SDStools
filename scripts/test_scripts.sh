@@ -9,6 +9,8 @@ python inpaint_spacetime.py -f /media/marda/TWOTB/USGS/Doodleverse/github/SDStoo
 ### detrend each transect
 python detrend_relstart_transect_timeseries.py -f /media/marda/TWOTB/USGS/Doodleverse/github/SDStools/example_data/transect_time_series_coastsat_nooutliers_inpainted.csv -N 10 -p 1
 
+### compute time-series stats
+python analyze_transects.py -f /media/marda/TWOTB/USGS/Doodleverse/github/SDStools/example_data/transect_time_series_coastsat_nooutliers_inpainted.csv -p 1
 
 ############# Auxiliary analyses
 
