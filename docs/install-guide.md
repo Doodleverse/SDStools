@@ -4,6 +4,14 @@ Currently SDS_tools runs in the coastseg environment. Follow the CoastSeg instal
 
 # Example
 
+Clone the github repo
+
+```
+git clone --depth 1 https://github.com/Doodleverse/SDStools.git
+```
+
+Then, to use:
+
 ```
 conda activate coastseg
 cd <location SDS_tools installed>
