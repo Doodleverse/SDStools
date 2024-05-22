@@ -47,5 +47,10 @@ nav:
   - Installation:
       - Installation Guide: install-guide.md
   - Guides:
-      - 1. Filter Outliers: filter_outliers_guide.md
-      - 2. Fill in Missing Values: inpaint_spacetime_guide.md
+      - 1. Filter outliers in spatio-temporal SDS data: filter_outliers_guide.md
+      - 2. Fill in missing values in spatio-temporal SDS data: inpaint_spacetime_guide.md
+      - 3. Detrend spatio-temporal SDS data relative to start: detrend_spacetime_guide.md
+      - 4. Denoise spatio-temporal SDS data: denoise_inpainted_spacetime_guide.md
+      - 5. Statistically analyze each transect: analyze_transects_guide.md
+      - 6. Download ERA5 wave hindcast: download_waves_guide.md
+      - 7. Download topobathy data: download_topobathy_guide.md

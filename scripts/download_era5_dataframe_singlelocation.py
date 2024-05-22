@@ -8,7 +8,7 @@
 ## written by Dr Daniel Buscombe, April-May, 2024
 
 ## Example usage, from cmd:
-## python download_era5_dataframe_singlelocation.py -f "my_location" -a 1984 -b 2023 -x -160.8052  -y 64.446 -w intermediate
+## python download_era5_dataframe_singlelocation.py -i "my_location" -a 1984 -b 2023 -x -160.8052  -y 64.446 -w intermediate
 
 import cdsapi
 import pandas as pd
@@ -70,8 +70,8 @@ def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Script to download ERA5 wave data at a single location.")
     
     parser.add_argument(
-        "-f",
-        "-f",
+        "-i",
+        "-I",
         dest="fileprefix",
         type=str,
         required=True,

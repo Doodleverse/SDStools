@@ -10,51 +10,86 @@ To view the help documentation for the script, use the following command:
 python download_era5_dataframe_singlelocation.py --help
 ```
 
+or 
+
 ```bash
 python download_era5_dataframe_grid.py --help
 ```
 
-# Examples
+## Common command line arguments
 
-## Example #1: Basic Usage
-
-This example downloads waves at a single point
-
-```python
-python download_era5_dataframe_singlelocation.py -f 
-```
-
-or, for 2D measurements
-
-```python
-python download_era5_dataframe_grid.py -f 
-```
-
-<!-- 
-
-- `-s`: Sets the integer threshold for outlier detection. Here it is set to 3.
-
+- `-i`: Sets the file prefix to use for output data files
 <details>
 <summary>More details</summary>
-The threshold determines how many standard deviations a data point must deviate from the median within a sliding window to be considered an outlier.
-If a data point's deviation exceeds this threshold, it is flagged as an outlier and can be replaced by the median value of the window.
-</details>
-
-- `-i`: Sets the number of iterations for applying the Hampel filter. Here it is set to 5, meaning the filter will be applied for 5 iterations.
-
-<details>
-<summary>More details</summary>
-The number of iterations in the Hampel filter determines how many times the filter is applied to the data. Multiple iterations can enhance the effectiveness of outlier removal by progressively refining the data and eliminating any residual outliers that may not have been detected in earlier passes.
-</details>
-
-- `-w`: Sets the window size as a percentage of the data length. Here it is set to 20% of the data length.
-<details>
-<summary>More details</summary>
-The window size in the Hampel filter specifies the span of data points (as a percentage of the total data length) around each target point that are used to calculate the median and median absolute deviation. This sliding window determines the local context for outlier detection, with a larger window capturing more data points and a smaller window providing a more localized analysis.
+A string that typically represents the name of the place where the data come from
 </details>
 
 - `-p`: If 1, make a plot
 <details>
 <summary>More details</summary>
 A flag to make (or suppress) a plot
-</details> -->
+</details>
+
+- `-a`: start year
+
+- `-b`: end year
+
+
+## Examples
+
+### Example #1: single point
+
+Additional command line arguments:
+
+- `-x`: longitude
+- `-y`: latitude
+- `-w`: water depth, either 'deep' or 'intermediate'
+<details>
+<summary>More details</summary>
+Intermediate water is defined as water depths where d/L is between 0.05 and 0.5, where d = water depth in meters, and L is wavelength in meters
+</details>
+
+
+This example downloads waves at a single point
+
+```python
+python download_era5_dataframe_singlelocation.py  -i "my_location" -a 1984 -b 2023 -x -160.8052  -y 64.446 -w intermediate -p 1
+```
+
+Here's an example screenshot
+
+![Screenshot from 2024-05-22 13-34-51](https://github.com/Doodleverse/SDStools/assets/3596509/a68a60b6-3af5-468c-b8f2-9cec188fffcb)
+
+The (optional) plots created. This is not intended to be a publication ready figures. This merely shows the data, as a convenience:
+
+![slapton_reanalysis-era5-single-levels_timeseries_Hs](https://github.com/Doodleverse/SDStools/assets/3596509/9807cc65-ab4e-4a8f-a0b8-2927a609cf9d)
+
+[slapton_reanalysis-era5-single-levels_joint_and_marginal_distributions_Hs_Tpeak](https://github.com/Doodleverse/SDStools/assets/3596509/39bbecca-04e4-4378-ada5-8134d3dc9638)
+![slapton_reanalysis-era5-single-levels_joint_and_marginal_distributions_Hs_Tmean](https://github.com/Doodleverse/SDStools/assets/3596509/0117b4bf-10c3-430b-8fab-9760a996f91b)
+![slapton_reanalysis-era5-single-levels_joint_and_marginal_distributions_Hs_Dmean](https://github.com/Doodleverse/SDStools/assets/3596509/1163ba4f-99b8-4c3e-97f3-638c8d14af0f)
+
+
+### Example #2: grid
+
+Additional command line arguments:
+
+- `-f`: Sets the file (geojson) to be analyzed
+
+<details>
+<summary>More details</summary>
+The geoJSON format file should contain a polygon
+</details>
+
+For 2D measurements, at 'my_location', from 1984 to 2023 inclusive, according to a geoJSON file region of interest
+
+```python
+python download_era5_dataframe_grid.py -i "my_location" -a 1984 -b 2023 -f /path/to/your/geoJSON file -p 1
+```
+
+Here's an example screenshot
+
+![Screenshot from 2024-05-22 13-23-48](https://github.com/Doodleverse/SDStools/assets/3596509/e525ebea-e394-4981-ad29-d744a2197ec2)
+
+The (optional) plots created. This is not intended to be a publication ready figures. This merely shows the data, as a convenience:
+
+![AK_mean_2d](https://github.com/Doodleverse/SDStools/assets/3596509/54f24f5a-c600-451d-99e7-63eda32c313e)

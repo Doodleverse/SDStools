@@ -21,7 +21,7 @@ python analyze_transects.py -f /media/marda/TWOTB/USGS/Doodleverse/github/SDStoo
 python download_era5_dataframe_grid.py -i "AK" -a 1984 -b 2023 -f /media/marda/TWOTB/USGS/Doodleverse/github/SDStools/example_data/ak_example.geojson -p 1
 
 #### download wave data at a single location from ERA5
-python download_era5_dataframe_singlelocation.py -f "AK" -a 1984 -b 2023 -x -160.8052  -y 64.446 -w intermediate -p 1
+python download_era5_dataframe_singlelocation.py -i "AK" -a 1984 -b 2023 -x -160.8052  -y 64.446 -w intermediate -p 1
 
 ### download a topobathy map based on geojson polygon
 python download_topobathymap_geojson.py -s "LongIsland" -f "/media/marda/TWOTB/USGS/Doodleverse/github/SDStools/example_data/longisland_example.geojson" -p 1

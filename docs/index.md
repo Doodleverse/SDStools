@@ -6,7 +6,7 @@ SDS tools is a comprehensive suite of tools designed for the robust analysis of 
 
 This website and the code is currently under active development.
 
-## SDS Scripts Available for Use
+## SDS analysis/post-processing scripts available for use
 
 1. `filter_outliers_hampel_spacetime.py`: Removes outliers from time series data using the Hampel filter applicable for `raw_transect_time_series.csv` & `tidally_corrected_transect_time_series.csv`. This takes a csv file of time (rows) versus transects (columns) and outputs a new csv file in the same format.
 
@@ -19,7 +19,7 @@ This website and the code is currently under active development.
 5. `denoise_inpainted_spacetime.py`: Use this script to denoise an inpainted SDS matrix using a Morlet wavelet (experimental). This results in a smoother dataset, but carries out filtering in both space and time.
 
 
-## Auxiliary Scripts Available for Use
+## Auxiliary scripts available for use
 
 1. `download_era5_dataframe_singlelocation.py`: Use this script to download a time-series of bulk wave statistics at a single point, using a geoJSON polygon as input
 
@@ -29,6 +29,9 @@ This website and the code is currently under active development.
 
 4. `download_topobathymap_geotiff.py`: Use this script to download a topobathymetric map at approx ~3m resolution, and store as a geoTIFF. Takes geoTIFF, e.g. a CoastSeg image, as input
 
+5. `make_csv_per_transect_tide_crt.py`: Saves the tidally corrected time series for each transect with intersections with the shoreline 
+
+6. `make_csv_per_transect_raw.py`: Saves the raw time series for each transect with intersections with the shoreline
 
 ## Test script
 
