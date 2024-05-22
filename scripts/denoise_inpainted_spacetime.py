@@ -1,6 +1,6 @@
 
 
-## Takes a CSV file of SDS data (shorelines versus transects)
+## Takes a CSV file of SDS data (shorelines versus transects) and carry out calibrating wavelet denoising
 ## written by Dr Daniel Buscombe, May 1, 2024
 
 ## Example usage, from cmd:
@@ -102,14 +102,6 @@ def parse_arguments() -> argparse.Namespace:
         required=True,
         help="Set the name of the CSV file.",
     )
-    parser.add_argument(
-        "-m",
-        "-M",
-        dest="method",
-        type=str,
-        required=True,
-        help="Set the method to use to denoise.",
-    )
 
     parser.add_argument(
         "-p",
@@ -128,7 +120,6 @@ def parse_arguments() -> argparse.Namespace:
 def main():
     args = parse_arguments()
     csv_file = args.csv_file
-    method = args.method
     doplot = args.doplot
 
     ### input files
@@ -147,11 +138,13 @@ def main():
         plt.figure(figsize=(12,8))
         plt.subplot(121)
         plt.imshow(cs_data_matrix)
-        plt.axis('off'); plt.title("a) Original", loc='left')
+        plt.title("a) Original", loc='left')
+        plt.xlabel('Time'); plt.ylabel('Transect')
         plt.subplot(122)
         plt.imshow(cs_data_matrix_nonans_denoised)
-        plt.axis('off'); plt.title("b) Denoised", loc='left')
-        outfile = csv_file.replace(".csv","_nooutliers.png")
+        plt.title("b) Denoised", loc='left')
+        plt.xlabel('Time'); plt.ylabel('Transect')
+        outfile = csv_file.replace(".csv","_waveletfiltered.png")
         plt.savefig(outfile, dpi=200, bbox_inches='tight')
         plt.close()
 

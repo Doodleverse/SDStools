@@ -10,23 +10,14 @@ To view the help documentation for the script, use the following command:
 python filter_outliers_hampel_spacetime.py --help
 ```
 
-# Examples
+## Command line arguments
 
-## Example #1: Basic Usage
+- `-f`: Sets the file (csv) to be analyzed
 
-This example removes the outliers from the `raw_transect_time_series.csv` file using the default parameters:
-
-```python
-python filter_outliers_hampel_spacetime.py -f "/path/to/SDStools/example_data/raw_transect_time_series.csv"
-```
-
-## Example #2: Custom Parameters
-
-This removes outliers from the `raw_transect_time_series.csv` using the following parameters :
-
-```python
-python filter_outliers_hampel_spacetime.py -f "/path/to/SDStools/example_data/raw_transect_time_series.csv" -s 3 -i 5 -w 0.20
-```
+<details>
+<summary>More details</summary>
+The csv format file shoule contain shoreline positions in each cell, with rows as time and columns as transects
+</details>
 
 - `-s`: Sets the integer threshold for outlier detection. Here it is set to 3.
 
@@ -54,3 +45,38 @@ The window size in the Hampel filter specifies the span of data points (as a per
 <summary>More details</summary>
 A flag to make (or suppress) a plot
 </details>
+
+
+## Examples
+
+### Example #1: Basic Usage
+
+This example removes the outliers from the `raw_transect_time_series.csv` file using the default parameters:
+
+```python
+python filter_outliers_hampel_spacetime.py -f "/path/to/SDStools/example_data/raw_transect_time_series.csv" -p 1
+```
+
+Here's an example screenshot
+
+![Screenshot from 2024-05-22 11-37-37](https://github.com/Doodleverse/SDStools/assets/3596509/ffc31fa4-bc4a-4aa5-b7e1-0c4f4489db14)
+
+The (optional) plot is created. This shows the data as a 2d matrix of shoreline positions as a function of time and transect. This plot is purely for QA/QC purposes and is not intended to be a publication ready figure. This merely shows the data, as a convenience:
+![Screenshot from 2024-05-22 11-37-54](https://github.com/Doodleverse/SDStools/assets/3596509/097a8be6-b372-4b27-a263-82b25f4a5069)
+
+
+### Example #2: Custom Parameters
+
+This removes outliers from the `raw_transect_time_series.csv` using the following parameters :
+
+```python
+python filter_outliers_hampel_spacetime.py -f "/path/to/SDStools/example_data/raw_transect_time_series.csv" -s 3 -i 5 -w 0.20
+```
+
+Here's an example screenshot:
+
+![Screenshot from 2024-05-22 11-42-49](https://github.com/Doodleverse/SDStools/assets/3596509/551d4f8d-f724-48bd-a2d8-ce457c288595)
+
+
+The (optional) plot is created. This shows the data as a 2d matrix of shoreline positions as a function of time and transect. This plot is purely for QA/QC purposes and is not intended to be a publication ready figure. This merely shows the data, as a convenience:
+![Screenshot from 2024-05-22 11-44-00](https://github.com/Doodleverse/SDStools/assets/3596509/6fccc786-a8f0-40a3-896c-86fbd2abae2b)

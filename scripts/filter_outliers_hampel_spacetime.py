@@ -272,10 +272,12 @@ def main():
         plt.figure(figsize=(12,8))
         plt.subplot(121)
         plt.imshow(cs_data_matrix)
-        plt.axis('off'); plt.title("a) Original", loc='left')
+        plt.title("a) Original", loc='left') #plt.axis('off'); 
+        plt.xlabel('Time'); plt.ylabel('Transect')
         plt.subplot(122)
         plt.imshow(cs_data_matrix_outliers_removed)
-        plt.axis('off'); plt.title("b) Outliers removed", loc='left')
+        plt.title("b) Outliers removed", loc='left') #plt.axis('off'); 
+        plt.xlabel('Time'); plt.ylabel('Transect')
         outfile = csv_file.replace(".csv","_nooutliers.png")
         plt.savefig(outfile, dpi=200, bbox_inches='tight')
         print(f"Figure save saved to  {os.path.abspath(outfile)}")

@@ -102,10 +102,12 @@ def main():
         plt.figure(figsize=(12,8))
         plt.subplot(121)
         plt.imshow(cs_data_matrix)
-        plt.axis('off'); plt.title("a) Original", loc='left')
+        plt.title("a) Original", loc='left') #plt.axis('off'); 
+        plt.xlabel('Time'); plt.ylabel('Transect')
         plt.subplot(122)
         plt.imshow(cs_data_matrix_nooutliers_nonans)
-        plt.axis('off'); plt.title("b) Inpainted", loc='left')
+        plt.title("b) Inpainted", loc='left') #plt.axis('off');
+        plt.xlabel('Time'); plt.ylabel('Transect')
         outfile = csv_file.replace(".csv","_inpainted.png")
         plt.savefig(outfile, dpi=200, bbox_inches='tight')
         plt.close()

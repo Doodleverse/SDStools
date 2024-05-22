@@ -6,6 +6,9 @@ python filter_outliers_hampel_spacetime.py -f /media/marda/TWOTB/USGS/Doodlevers
 ### inpaint missing values
 python inpaint_spacetime.py -f /media/marda/TWOTB/USGS/Doodleverse/github/SDStools/example_data/transect_time_series_coastsat_nooutliers.csv -p 1 
 
+### inpaint missing values
+python denoise_inpainted_spacetime.py -f /media/marda/TWOTB/USGS/Doodleverse/github/SDStools/example_data/transect_time_series_coastsat_inpainted.csv -p 1 
+
 ### detrend each transect
 python detrend_relstart_transect_timeseries.py -f /media/marda/TWOTB/USGS/Doodleverse/github/SDStools/example_data/transect_time_series_coastsat_nooutliers_inpainted.csv -N 10 -p 1
 
