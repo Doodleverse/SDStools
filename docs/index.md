@@ -2,6 +2,8 @@
 
 Welcome to SDS tools!
 
+![SDS-tools_logo](https://github.com/Doodleverse/SDStools/assets/3596509/6631a5f4-e0ba-45d6-beab-8503e2fdbf95)
+
 SDS tools is a comprehensive suite of tools designed for the robust analysis of time series shoreline data. It provides functionalities for filtering outliers, conducting in-depth data analysis, and identifying trends, thereby enabling more accurate and reliable shoreline data interpretation.
 
 This website and the code is currently under active development.

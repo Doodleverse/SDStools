@@ -1,6 +1,8 @@
 # SDStools
 A toolbox for analyses of Satellite Derived Shorelines (SDS) generated from CoastSeg (CoastSat)
 
+![SDS-tools_logo](https://github.com/Doodleverse/SDStools/assets/3596509/6631a5f4-e0ba-45d6-beab-8503e2fdbf95)
+
 # RoadMap 
 Currently there are some post-processing needs that users of coastseg have requested. Our team has grouped these needs into the following major categories.
 
