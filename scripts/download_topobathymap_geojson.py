@@ -89,15 +89,15 @@ def main():
 
     gdf = gpd.read_file(geofile, driver='GeoJSON')
 
-    minlon = float(gdf.bounds.minx.values)
-    maxlon = float(gdf.bounds.maxx.values)
-    minlat = float(gdf.bounds.miny.values)
-    maxlat = float(gdf.bounds.maxy.values)
+    minlon = float(gdf.bounds.minx.values[0])
+    maxlon = float(gdf.bounds.maxx.values[0])
+    minlat = float(gdf.bounds.miny.values[0])
+    maxlat = float(gdf.bounds.maxy.values[0])
 
     pts_per_deg = 300
     kwds = {}
-    kwds['width'] = int(np.ceil((maxlon - minlon) * pts_per_deg))
-    kwds['height'] = int(np.ceil((maxlat - minlat) * pts_per_deg))
+    kwds['width'] = int(np.ceil(maxlon - minlon) * pts_per_deg)
+    kwds['height'] = int(np.ceil(maxlon - minlon) * pts_per_deg)
 
     req = bathyreq.BathyRequest()
     data, lonvec, latvec = req.get_area(
