@@ -891,14 +891,4 @@ def in_situ_comparison(home,
         plt.savefig(os.path.join(analysis_outputs, SITE+'_trends_dist'+EXT), dpi=DPI)
         plt.close()
 
-home = r'E:\test'
-site = r'CapeCod'
-window=10
-in_situ_comparison(home,
-                   site,
-                   window,
-                   plot_timeseries=False,
-                   legend_loc=(0.4,0.6),
-                   north_arrow_params=(0.05,0.2,0.1),
-                   scale_bar_loc='lower left',
-                   trend_scale=100)
+
