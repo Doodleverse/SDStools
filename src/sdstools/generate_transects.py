@@ -1,3 +1,11 @@
+"""
+Modules for generating an QCing transects
+
+Mark Lundine, USGS
+"""
+
+
+
 ##import packages
 from osgeo import ogr, gdal
 gdal.UseExceptions() 

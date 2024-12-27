@@ -1,3 +1,9 @@
+"""
+Some useful processing modules for shorelines.
+
+Mark Lundine, USGS
+"""
+
 import numpy as np
 import os
 import glob

@@ -1,3 +1,10 @@
+"""
+Making a video of temporally colored shorelines with an evolving timeseries
+
+Mark Lundine, USGS
+"""
+
+
 import os
 import glob
 import numpy as np

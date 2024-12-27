@@ -2,6 +2,8 @@
 Mark Lundine
 This is an experimental script to investigate how much information can be pulled
 from satellite shoreline timeseries.
+
+Just making synthetic timeseries (trend + seasonality + noise + gaps)
 """
 import numpy as np
 import matplotlib.pyplot as plt
