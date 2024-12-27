@@ -1,16 +1,14 @@
 """
 Mark Lundine
-This script takes the CoastSeg matrix and resamples it intelligently
-in the time and space domain so that it is equally spaced temporally and spatially.
-This will allow for predictive modeling from satellite shoreline data obtained from CoastSeg.
+This script takes the CoastSeg matrix and resamples it the time domain.
 """
 import os
 import pandas as pd
 import numpy as np
 import geopandas as gpd
-import shoreline_timeseries_analysis_single as stas
-import shoreline_timeseries_analysis_single_spatial as stasp
+import analysis
 
+    
 def main(transect_timeseries_path,
          config_gdf_path,
          output_folder,
@@ -18,8 +16,7 @@ def main(transect_timeseries_path,
          which_timedelta,
          which_spacedelta,
          median_filter_window=3,
-         timedelta=None,
-         spacedelta=None):
+         timedelta=None):
     """
     Performs timeseries and spatial series analysis cookbook on each
     transect in the transect_time_series matrix from CoastSeg
@@ -36,8 +33,7 @@ def main(transect_timeseries_path,
     """
     ##make directories
     time_dir = os.path.join(output_folder, 'time')
-    space_dir = os.path.join(output_folder, 'space')
-    dirs = [time_dir, space_dir]
+    dirs = [time_dir]
     for d in dirs:
         try:
             os.mkdir(d)
@@ -47,18 +43,17 @@ def main(transect_timeseries_path,
     ##Load in data
     timeseries_data = pd.read_csv(transect_timeseries_path)
     timeseries_data['dates'] = pd.to_datetime(timeseries_data['dates'],
-                                              format='%Y-%m-%d %H:%M:%S+00:00')
+                                              format='%Y-%m-%dT%H:%M:%S')
     config_gdf = gpd.read_file(config_gdf_path)
-    transects = config_gdf[config_gdf['type']=='transect']
+    transects = config_gdf #config_gdf[config_gdf['type']=='transect']
 
     ##Loop over transects (space)
     transect_ids = [None]*len(transects)
     timeseries_dfs = [None]*len(transects)
     timedeltas = [None]*len(transects)
     for i in range(len(transects)):
-        transect_id = transects['id'].iloc[i]
+        transect_id = str(transects['OBJECTID'].iloc[i])
         dates = timeseries_data['dates']
-
         try:
             select_timeseries = np.array(timeseries_data[transect_id])
         except:
@@ -73,7 +68,7 @@ def main(transect_timeseries_path,
                                                                             time_dir,
                                                                             transect_id,
                                                                             which_timedelta,
-                                                                            median_filter_window=3,
+                                                                            median_filter_window=median_filter_window,
                                                                             timedelta=timedelta)
         output_df = output_df.set_index(['date'])
         output_df = output_df.rename(columns = {'position':transect_id})
@@ -88,46 +83,13 @@ def main(transect_timeseries_path,
     ##Make new matrix 
     new_matrix = pd.concat(timeseries_dfs, 1)
     new_matrix.to_csv(os.path.join(output_folder, 'timeseries_mat_resample_time.csv'))
-    
+    new_matrix = pd.read_csv(os.path.join(output_folder, 'timeseries_mat_resample_time.csv'))
 
-    ##Loop over time
-    datetimes = new_matrix.index
-    space_series_dfs = [None]*len(datetimes)
-    spacedeltas = [None]*len(datetimes)
-    for j in range(len(datetimes)):
-        date = datetimes[j]
-        try:
-            select_timeseries = np.array(new_matrix.loc[date])
-        except:
-            continue
-        
-        ##space series processing
-        data = pd.DataFrame({'transect_id':transect_ids,
-                             'position':select_timeseries})
-        space_series_analysis_result, output_df, new_spacedelta = stasp.main_df(data,
-                                                                                space_dir,
-                                                                                'timestep'+str(j),
-                                                                                transect_spacing,
-                                                                                which_spacedelta,
-                                                                                spacedelta=spacedelta)
-        output_df.set_index(['longshore_position'])
-        output_df = output_df.rename(columns = {'position':date})
-        output_df = output_df.drop(columns =['longshore_position'])
-        space_series_dfs[j] = output_df
-        spacedeltas[j] = new_spacedelta
-
-    ##Remove nones in case there were times with no data
-    space_series_dfs = [ele for ele in space_series_dfs if ele is not None]
-    spacedeltas = [ele for ele in spacedeltas if ele is not None]
-    new_matrix = pd.concat(space_series_dfs,1)
-    new_matrix = new_matrix.T
-    new_matrix.index.name = 'date'
-    longshore_index_mat_path = os.path.join(output_folder, 'timeseries_mat_resample_time_space_longshore_index.csv')
-    new_matrix.to_csv(longshore_index_mat_path)
-    new_matrix.columns = transect_ids
-    new_matrix_path = os.path.join(output_folder, 'timeseries_mat_resample_time_space.csv')
-    new_matrix.to_csv(new_matrix_path)
-    return new_matrix_path
+    ##Stacked csv
+    stacked = new_matrix.melt(id_vars=['date'],
+                              var_name='transect_id',
+                              value_name='distances')
+    stacked.to_csv(os.path.join(output_folder, 'timeseries_resample_time_stacked.csv'))
         
         
         

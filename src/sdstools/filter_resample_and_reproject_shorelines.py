@@ -1,18 +1,12 @@
 """
 Mark Lundine
-This script takes the CoastSeg matrix and resamples it the time domain.
+This script takes the CoastSeg matrix and resamples it the time domain and then reprojects new shorelines.
 """
 import os
 import pandas as pd
 import numpy as np
 import geopandas as gpd
 import analysis
-# load modules
-import os
-import numpy as np
-import pandas as pd
-import geopandas as gpd
-import pandas as pd
 import datetime
 import shapely
 
