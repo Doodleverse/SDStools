@@ -1,3 +1,10 @@
+"""
+Comparing CoastSeg generated SDS data with in-situ measurements.
+
+Mark Lundine, USGS
+"""
+
+
 import geopandas as gpd
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -14,7 +21,6 @@ from scipy import stats
 
 warnings.filterwarnings("ignore")
 
-"""TODO FIX COMPARISONS DF AND PLOT TIMESERIES SECTION"""
 plt.rcParams['lines.linewidth'] = 1
 plt.rcParams['lines.markersize'] = 2
 ##set basemap source
