@@ -28,6 +28,13 @@ import shapely
 from math import degrees, atan2, radians
 from scipy import stats
 
+def add_north_arrow(ax, north_arrow_params):
+    x,y,arrow_length = north_arrow_params
+    ax.annotate('N', xy=(x, y), xytext=(x, y-arrow_length),
+                arrowprops=dict(facecolor='white', width=2, headwidth=4),
+                ha='center', va='center', fontsize=8, color='white',
+                xycoords=ax.transAxes)
+    
 def gb(x1, y1, x2, y2):
     angle = degrees(atan2(y2 - y1, x2 - x1))
     return angle
@@ -257,6 +264,48 @@ def get_trends(transect_timeseries_path,
     new_geo_df_org_crs = new_geo_df.to_crs(org_crs)
     new_geo_df_org_crs.to_file(save_path)
     return save_path
+
+def plot_trend_maps(transect_trends_geojson,
+                    site,
+                    north_arrow_parms=(0.15, 0.93, 0.2),
+                    scale_bar_loc='upper left'):
+    """
+    Uses contextily and geopandas plotting to plot the trends on a map
+    inputs:
+    transect_trends_geojson (str): path to the transect with trends
+                                   output from get_trends()
+    site (str): site name
+    north_arrow_params (tuple): (x, y, arrow_length), need to play with this for different locations
+    scale_bar_loc (str): position for scale bar, need to play with this for different locations
+    returns:
+    None
+    """
+    transect_trends_gdf = gpd.read_file(transect_trends_geojson)
+    transect_trends_gdf = transect_trends_gdf.to_crs('3857')
+    ax = transect_trends_gdf.plot(column='linear_trend',
+                                  legend=True,
+                                  legend_kwds={'label':'Trend (m/year'}
+                                  cmap='RdBu',
+                                  )
+    ax.set_title(site)
+    cx.add_basemap(ax,
+                   source=cx.providers.CartoDB.DarkMatter
+                   attribution=False
+                   )
+    add_north_arrow(ax, north_arrow_params)
+    ax.add_artist(ScaleBar(1,
+                           location=scale_bar_loc
+                           )
+                  )
+    ax.set_axis_off()
+    plt.tight_layout()
+    plt.savefig(os.path.join(os.path.dirname(transect_trends_geojson),
+                             site+'_trend_map.png'),
+                dpi=500)
+    plt.close('all')
+    
+
+
 
 
 

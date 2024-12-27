@@ -55,9 +55,9 @@ def geojson_to_shapefile(my_geojson, out_dir=None):
     else:
         new_name = os.path.join(out_dir, name_no_ext+'.shp')
         
-    myshpfile = gpd.read_file(my_geojson)
-    myshpfile['date'] = myshpfile['date'].astype('str')
-    myshpfile.to_file(new_name)
+    mygeojson = gpd.read_file(my_geojson)
+    mygeojson['date'] = mygeojson['date'].astype('str')
+    mygeojson.to_file(new_name)
     return new_name
 
 def batch_geojson_to_shapefile(in_dir, out_dir):
@@ -70,7 +70,7 @@ def batch_geojson_to_shapefile(in_dir, out_dir):
     
     """
     geojsons = glob.glob(in_dir + '/*.geojson')
-    for jsn in shapefiles:
+    for jsn in geojsons:
         geojson_to_shapefile(jsn, out_dir = out_dir)       
 
 

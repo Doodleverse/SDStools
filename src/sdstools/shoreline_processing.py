@@ -11,7 +11,6 @@ from shapely import geometry
 import warnings
 warnings.filterwarnings("ignore")
 
-
 def wgs84_to_utm_file(geojson_file):
     """
     Converts wgs84 to UTM
@@ -126,7 +125,7 @@ def vertex_filter(shorelines):
         high_limit = mean+3*sigma
         low_limit = mean-3*sigma
         filter_gdf = gdf[gdf['vtx']< high_limit]
-        filter_gdf = filter_gdf[filter_gdf['vtx']> low_limit
+        filter_gdf = filter_gdf[filter_gdf['vtx']> low_limit]
         if mean < 5:
             break
         new_count = len(filter_gdf)
@@ -192,110 +191,6 @@ def smooth_lines(shorelines,refinements=5):
     new_lines.to_file(save_path)
     return save_path
 
-##not functional
-def ref_shoreline_filter(config_gdf_path, model_shorelines, distance_threshold=250):
-    """
-    filters extracted shoreline points that are not contained within a buffer radius of a reference shoreline
-    saves output with '_ref_shoreline_filter' appended to original filename in same directory
-    inputs:
-    config_gdf_path (str): path to the config_gdf geojson
-    model_shorelines (str): path to extracted shorelines
-    distance_threshold (float): buffer radius
-    outputs:
-    save_path (str): path to the output file
-    """
-    save_path = os.path.splitext(model_shorelines)[0]+'_ref_shoreline_filter.geojson'
-    config_gdf = gpd.read_file(config_gdf_path)
-    reference_gdf = config_gdf[config_gdf['type']=='shoreline']
-    model_gdf = gpd.read_file(model_shorelines)
-    reference_gdf = reference_gdf.to_crs(model_gdf.crs)    
-    ##First need to get rid of lines that are completely outside of the ref shoreline buffer
-    buffer = reference_gdf.buffer(distance_threshold,resolution=1)
-    buffer_vals = [None]*len(model_gdf)
-    for i in range(len(model_gdf)):
-        line_entry = model_gdf.iloc[i]
-        line = line_entry.geometry
-        bool_val = buffer.intersects(line).values[0]
-        buffer_vals[i] = bool_val
-    model_gdf['buffer_vals'] = buffer_vals
-    model_gdf_filter = model_gdf[model_gdf['buffer_vals']]
-    
-    ##Now get rid of points that lie outside ref polygon but preserve the rest of the shoreline
-    #new_lines = [None]*len(model_gdf_filter)
-    for i in range(len(model_gdf_filter)):
-        line_entry = model_gdf_filter.iloc[i]
-        line = line_entry.geometry
-        line_arr = LineString_to_arr(line)
-        bool_vals = [None]*len(line_arr)
-        j = 0
-        for point in line_arr:
-            point = geometry.Point(point)
-            bools = buffer.contains(point)
-            bool_val = all(list(bools))
-            bool_vals[j] = bool_val
-            j=j+1
-        new_line_arr = line_arr[bool_vals]
-        new_line_LineString = arr_to_LineString(new_line_arr)
-        new_lines[i] = new_line_LineString
-
-    ##Assign the new geometries, save the output
-    model_gdf_filter['geometry'] = new_lines
-    model_gdf_filter.to_file(save_path)
-
-    return save_path
-
-##need to edit
-def ref_poly_filter(reference_polygon, model_shorelines):
-    """
-    filters extracted shoreline points that are not contained within a reference region/polygon
-    saves output with '_ref_region_filter' appended to original filename in same directory
-    inputs:
-    reference_region_path (str): path to reference region geojson
-    model_shorelines (str): path to extracted shorelines
-    outputs:
-    save_path (str): path to the output file
-    """
-
-    ##Loading stuff in
-    save_path = os.path.splitext(model_shorelines)[0]+'_ref_shoreline_filter.geojson'
-    model_gdf = gpd.read_file(model_shorelines)
-    ref_poly_gdf = gpd.read_file(reference_polygon)
-
-    ##First need to get rid of lines that are completely outside of the ref polygon
-    ref_polygon = ref_poly_gdf.geometry
-    buffer_vals = [None]*len(model_gdf)
-    for i in range(len(model_gdf)):
-        line_entry = model_gdf.iloc[i]
-        line = line_entry.geometry
-        bool_val = ref_polygon.intersects(line).values[0]
-        buffer_vals[i] = bool_val
-    model_gdf['buffer_vals'] = buffer_vals
-    model_gdf_filter = model_gdf[model_gdf['buffer_vals']]
-
-    ##Now get rid of points that lie outside ref polygon but preserve the rest of the shoreline
-    new_lines = [None]*len(model_gdf_filter)
-    for i in range(len(model_gdf_filter)):
-        line_entry = model_gdf_filter.iloc[i]
-        line = line_entry.geometry
-        line_arr = LineString_to_arr(line)
-        bool_vals = [None]*len(line_arr)
-        j = 0
-        for point in line_arr:
-            point = geometry.Point(point)
-            bool_val = ref_polygon.contains(point)[0]
-            bool_vals[j] = bool_val
-            j=j+1
-        new_line_arr = line_arr[bool_vals]
-        new_line_LineString = arr_to_LineString(new_line_arr)
-        new_lines[i] = new_line_LineString
-
-    ##Assign the new geometries, save the output
-    model_gdf_filter['geometry'] = new_lines
-    model_gdf_filter.to_file(save_path)
-
-    return save_path
-    
-        
 def add_year_as_field(shorelines):
     """
     Just adding the year as a field for visualization purposes
@@ -329,8 +224,3 @@ def filter_by_month_range(shorelines_path, min_month, max_month):
     model_gdf_filter = model_gdf[model_gdf['date'].dt.month.isin(range(min_month, max_month+1))]
     model_gdf_filter.to_file(shorelines_month_filter_path)
     return shorelines_month_filter_path
-
-
-
-    
-    

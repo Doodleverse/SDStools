@@ -188,26 +188,24 @@ def make_data(noise_val,
     return save_name
 
 
-##Example call, setting the random seed
-random.seed(0)
-##Noise value in meters
-noise_val = 10
-##Trend value in m/year
-trend_val = random.uniform(-3, 3)
-##Amplitude for yearly pattern in m
-yearly_amplitude = random.uniform(0, 10)
-##Revisit time in days
-dt = 12
-##Fraction of missing time periods
-t_gap_frac = 0.05
-##give it a save_name
-save_name = 'test1'
-
-make_data(noise_val,
-          trend_val,
-          yearly_amplitude,
-          dt,
-          t_gap_frac,
-          save_name)
-
-
+####Example call, setting the random seed
+##random.seed(0)
+####Noise value in meters
+##noise_val = 10
+####Trend value in m/year
+##trend_val = random.uniform(-3, 3)
+####Amplitude for yearly pattern in m
+##yearly_amplitude = random.uniform(0, 10)
+####Revisit time in days
+##dt = 12
+####Fraction of missing time periods
+##t_gap_frac = 0.05
+####give it a save_name
+##save_name = 'test1'
+##
+##make_data(noise_val,
+##          trend_val,
+##          yearly_amplitude,
+##          dt,
+##          t_gap_frac,
+##          save_name)
