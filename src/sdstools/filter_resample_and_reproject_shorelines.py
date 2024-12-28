@@ -277,7 +277,7 @@ def main(transect_timeseries_path,
         ##Timeseries processing
         data = pd.DataFrame({'date':dates,
                              'position':select_timeseries})
-        timeseries_analysis_result, output_df, new_timedelta = stas.main_df(data,
+        timeseries_analysis_result, output_df, new_timedelta = analysis.main_df(data,
                                                                             time_dir,
                                                                             transect_id,
                                                                             which_timedelta,
