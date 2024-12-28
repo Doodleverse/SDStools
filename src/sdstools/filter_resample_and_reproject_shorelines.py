@@ -110,14 +110,14 @@ def utm_to_wgs84_df(geo_df):
     return gdf_wgs84
 
 def transect_timeseries_to_wgs84(transect_timeseries_merged_path,
-                                 transects_path,
+                                 config_gdf_path,
                                  savename_lines,
                                  savename_points):
     """
     Takes merged transect timeseries path and outputs new shoreline lines and points files
     inputs:
     transect_timeseries_merged_path (str): path to the transect_timeseries_merged.csv
-    transects_path (str): path to the the transects as geojson
+    config_gdf_path (str): path to the the config_gdf as geojson
     savename_lines (str): basename of the output lines ('..._lines.geojson')
     savename_points (str): basename of the output points ('...._points.geojson')
     """
@@ -126,8 +126,9 @@ def transect_timeseries_to_wgs84(transect_timeseries_merged_path,
     timeseries_data = timeseries_data.sort_values('transect_id', ascending=True).reset_index(drop=True)
     timeseries_data['dates'] = pd.to_datetime(timeseries_data['dates'], utc=True)
     timeseries_data['transect_id'] = timeseries_data['transect_id'].astype(int)
-    transects = gpd.read_file(transects_path)
-    transects['transect_id'] = transects['transect_id'].astype(int)
+    config_gdf = gpd.read_file(config_gdf_path)
+    transects = config_gdf[config_gdf['type']=='transect'].reset_index(drop=True)
+    transects['transect_id'] = transects['id']
 
     transects = transects.sort_values('transect_id', ascending=True).reset_index(drop=True)
 

@@ -587,12 +587,12 @@ def in_situ_comparison(home,
     data_mae = [mae_raws, mae_tides]
 
     ##removing nones
-    abs_raws_concat = np.concatenate(remove_nones(abs_raws))
-    abs_tides_concat = np.concatenate(remove_nones(abs_tides))
+    abs_raws_concat = np.abs(comparisons_df['cross_distance_in_situ']-comparisons_df['cross_distance_sds_raw'])
+    abs_tides_concat = np.abs(comparisons_df['cross_distance_in_situ']-comparisons_df['cross_distance_sds_tide'])
 
     ##removing nones
-    square_err_raws_concat = np.concatenate(remove_nones(square_err_raws))
-    square_err_tides_concat = np.concatenate(remove_nones(square_err_tides))
+    square_err_raws_concat = (comparisons_df['cross_distance_in_situ']-comparisons_df['cross_distance_sds_raw'])**2
+    square_err_tides_concat = (comparisons_df['cross_distance_in_situ']-comparisons_df['cross_distance_sds_tide'])**2
 
     ##iqr of sds values
     iqr_sds_raw = np.nanquantile(df_raw['cross_distance'], 0.75)-np.nanquantile(df_raw['cross_distance'], 0.25)
@@ -891,4 +891,18 @@ def in_situ_comparison(home,
         plt.savefig(os.path.join(analysis_outputs, SITE+'_trends_dist'+EXT), dpi=DPI)
         plt.close()
 
-
+"""
+Example call below
+"""
+##home = os.path.join(os.getcwd(), 'in_situ_comparison_test')
+##site='CapeCod'
+##window=10
+##plot_timeseries=False
+##in_situ_comparison(home,
+##                   site,
+##                   window,
+##                   plot_timeseries=plot_timeseries,
+##                   legend_loc=(0.4,0.6),
+##                   north_arrow_params=(0.05,0.2,0.1),
+##                   scale_bar_loc='lower left',
+##                   trend_scale=100)
