@@ -10,6 +10,20 @@ import analysis
 import datetime
 import shapely
 
+def arr_to_LineString(coords):
+    """
+    Makes a line feature from a list of xy tuples
+    inputs: coords
+    outputs: line
+    """
+    points = [None]*len(coords)
+    i=0
+    for xy in coords:
+        points[i] = shapely.geometry.Point(xy)
+        i=i+1
+    line = shapely.geometry.LineString(points)
+    return line
+
 def simplify_lines(shorelines_path, tolerance=1):
     """
     Uses shapely simplify function to smooth out the extracted shorelines
@@ -306,7 +320,7 @@ def main(transect_timeseries_path,
     savename_lines = os.path.join(output_folder, 'reprojected_lines.geojson')
     savename_points = os.path.join(output_folder, 'reprojected_points.geojson')
     stacked.to_csv(save_csv_path)
-    transect_timeseries_to_wgs84(save_csv_path
+    transect_timeseries_to_wgs84(save_csv_path,
                                  config_gdf_path,
                                  savename_lines,
                                  savename_points)
