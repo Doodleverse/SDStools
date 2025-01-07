@@ -65,7 +65,7 @@ def transect_timeseries(shorelines_path,
     print('Loading transects, computing start coordinates')
     transects_gdf = gpd.read_file(transects_path)
     transects_gdf = wgs84_to_utm_df(transects_gdf)
-    transects_gdf = transects_gdf.reset_index()
+    transects_gdf = transects_gdf.reset_index(drop=True)
     transects_gdf['geometry_saved'] = transects_gdf['geometry']
     coords = transects_gdf['geometry_saved'].get_coordinates()
     coords = coords[~coords.index.duplicated(keep='first')]
