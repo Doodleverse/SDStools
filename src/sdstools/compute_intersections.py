@@ -39,78 +39,6 @@ def utm_to_wgs84_df(geo_df):
     gdf_wgs84 = geo_df.to_crs(wgs84_crs)
     return gdf_wgs84
 
-def arr_to_LineString(coords):
-    """
-    Makes a line feature from a list of xy tuples
-    inputs:
-    
-    outputs:
-    line (shapely.LineString): LineString of the coords
-    """
-    points = [None]*len(coords)
-    i=0
-    for xy in coords:
-        points[i] = shapely.geometry.Point(xy)
-        i=i+1
-    line = shapely.geometry.LineString(points)
-    return line
-
-def LineString_to_arr(line):
-    """
-    Makes an array from linestring
-    inputs:
-    line (shapely.LineString): LineString of the coords
-    outputs:
-    coords (list of tuples): [(x1,y1), (x..,y..), (xn,yn)]
-    """
-    list_array = []
-    for pp in line.coords:
-        list_array.append(pp)
-    coords = np.array(list_array)
-    return coords
-
-def chaikins_corner_cutting(coords, refinements=5):
-    """
-    Smooths out lines or polygons with Chaikin's method
-    inputs:
-    coords (list of tuples): [(x1,y1), (x..,y..), (xn,yn)]
-    outputs:
-    coords (list of tuples): [(x1,y1), (x..,y..), (xn,yn)],
-                              this is the smooth line
-    """
-    i=0
-    for _ in range(refinements):
-        L = coords.repeat(2, axis=0)
-        R = np.empty_like(L)
-        R[0] = L[0]
-        R[2::2] = L[1:-1:2]
-        R[1:-1:2] = L[2::2]
-        R[-1] = L[-1]
-        coords = L * 0.75 + R * 0.25
-        i=i+1
-    return coords
-
-def smooth_lines(lines,refinements=5):
-    """
-    Smooths out shorelines with Chaikin's method
-    Shorelines need to be in UTM (or another planar coordinate system)
-
-    inputs:
-    shorelines (gdf): gdf of extracted shorelines in UTM
-    refinements (int): number of refinemnets for Chaikin's smoothing algorithm
-    outputs:
-    new_lines (gdf): gdf of smooth lines in UTM
-    """
-    new_lines = lines.copy()
-    for i in range(len(lines)):
-        line = lines.iloc[i]
-        coords = LineString_to_arr(line.geometry)
-        refined = chaikins_corner_cutting(coords, refinements=refinements)
-        refined_geom = arr_to_LineString(refined)
-        new_lines['geometry'][i] = refined_geom
-    new_lines
-    return new_lines
-
 def cross_distance(start_x, start_y, end_x, end_y):
     """distance formula, sqrt((x_1-x_0)^2 + (y_1-y_0)^2)"""
     dist = np.sqrt((end_x-start_x)**2 + (end_y-start_y)**2)
@@ -143,11 +71,8 @@ def transect_timeseries(shorelines_path,
     transects_gdf['y_start'] = coords['y']
     
     # load shorelines, project to utm, smooth
-    print('smoothing shorelines')
     shorelines_gdf = gpd.read_file(shorelines_path)
     shorelines_gdf = wgs84_to_utm_df(shorelines_gdf)
-    shorelines_gdf = smooth_lines(shorelines_gdf)
-    print('shorelines now smooth')
 
     print('computing intersections')
     # spatial join shorelines to transects
