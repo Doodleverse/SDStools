@@ -115,7 +115,8 @@ def smooth_lines(lines, refinements=5):
 
 def split_line(input_lines_or_multipoints_path,
                output_path,
-               linestrings_or_multi_points):
+               linestrings_or_multi_points,
+               smooth=True):
     """
     Breaks up linestring into multiple linestrings if point to point distance is too high
     inputs:
@@ -124,6 +125,7 @@ def split_line(input_lines_or_multipoints_path,
     output_path (str): path to save output to (
                        extracted_shorelines_lines.geojson or extracted_shorelines_points.geojson)
     linestrings_or_multi_points (str): 'LineString' to make LineStrings, 'MultiPoint' to make MultiPoints
+    smooth (bool): True to smooth the lines, False to not
     returns:
     output_path (str): path to the geodataframe with the new broken up lines
     """
@@ -201,13 +203,19 @@ def split_line(input_lines_or_multipoints_path,
     print('lines split')
 
     ##smooth the lines
-    print('smoothing lines')
-    smooth_lines_gdf = smooth_lines(all_lines_gdf)
-    print('lines smooth')
+    if smooth==True:
+        print('smoothing lines')
+        smooth_lines_gdf = smooth_lines(all_lines_gdf)
+        print('lines smooth')
 
-    ##put back in wgs84, save new file
-    smooth_lines_gdf = utm_to_wgs84_df(all_lines_gdf)
-    smooth_lines_gdf.to_file(output_path)
+        ##put back in wgs84, save new file
+        smooth_lines_gdf = utm_to_wgs84_df(all_lines_gdf)
+        smooth_lines_gdf.to_file(output_path)
+
+    else:
+        ##put back in wgs84, save new file
+        all_lines_gdf = utm_to_wgs84_df(all_lines_gdf)
+        all_lines_gdf.to_file(output_path)
     
     return output_path
     
