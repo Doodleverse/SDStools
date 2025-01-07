@@ -54,7 +54,7 @@ def arr_to_LineString(coords):
     line = shapely.geometry.LineString(points)
     return line
 
-def chaikins_corner_cutting(coords, refinements=3):
+def chaikins_corner_cutting(coords, refinements=5):
     """
     Smooths out lines or polygons with Chaikin's method
     inputs:
@@ -75,7 +75,7 @@ def chaikins_corner_cutting(coords, refinements=3):
         i=i+1
     return coords
 
-def smooth_lines(lines,refinements=3):
+def smooth_lines(lines,refinements=5):
     """
     Smooths out shorelines with Chaikin's method
     Shorelines need to be in UTM (or another planar coordinate system)
@@ -124,13 +124,13 @@ def split_line(input_lines_or_multipoints_path,
         satname = line['satname'].iloc[0]
         if (satname == 'L5') or (satname == 'L7') or (satname == 'L8') or (satname == 'L9'):
             dist_threshold = 45
-            simplify_param = np.sqrt(30**2 + 30**2 + 30**2)/2
+            simplify_param = np.sqrt(30**2 + 30**2 + 30**2)
         elif (satname=='S2'):
             dist_threshold = 15
-            simplify_param = np.sqrt(10**2 + 10**2 + 10**2)/2
+            simplify_param = np.sqrt(10**2 + 10**2 + 10**2)
         elif (satname=='PS'):
             dist_threshold = 8
-            simplify_param = np.sqrt(5**2 + 5**2 + 5**2)/2
+            simplify_param = np.sqrt(5**2 + 5**2 + 5**2)
 
         column_names = list(line.columns)
         column_names.remove('geometry')
