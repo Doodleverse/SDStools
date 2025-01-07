@@ -46,7 +46,8 @@ def cross_distance(start_x, start_y, end_x, end_y):
 
 def transect_timeseries(shorelines_path,
                         transects_path,
-                        output_csv_path):
+                        output_merged_path,
+                        output_mat_path):
     """
     Generates timeseries of shoreline cross-shore position
     given a geojson/shapefile containing shorelines and a
@@ -57,7 +58,8 @@ def transect_timeseries(shorelines_path,
     inputs:
     shoreline_path (str): path to file containing shorelines
     transect_path (str): path to file containing cross-shore transects
-    output_path (str): path to the csv file to output results to
+    output_merged path (str): path to save the merged csv file 
+    output_mat_path (str): path to save the matrix csv file
     """
     # load transects, project to utm, get start x and y coords
     print('Loading transects, computing start coordinates')
@@ -103,8 +105,14 @@ def transect_timeseries(shorelines_path,
                                           'index_right0','index'
                                          ]
                                 )
+
+    ##pivot to make the matrix
+    joined_mat = joined_df.pivot(index='dates', columns='transect_id', values='cross_distance')
+    joined_mat.columns.name = None
+    joined_mat.to_csv(output_mat_path)
+    
     ##save file
-    joined_df.to_csv(output_csv_path)
+    joined_df.to_csv(output_merged_path)
     print('intersections computed')
 
 
