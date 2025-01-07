@@ -9,10 +9,15 @@ import pandas as pd
 import geopandas as gpd
 import shapely
 import numpy as np
+import warnings
+import rasterio
+import rioxarray
+from scipy import stats
+warnings.filterwarnings("ignore")
 
 def wgs84_to_utm_df(geo_df):
     """
-    Converts wgs84 to UTM
+    Converts gdf from wgs84 to UTM
     inputs:
     geo_df (geopandas dataframe): a geopandas dataframe in wgs84
     outputs:
@@ -24,7 +29,7 @@ def wgs84_to_utm_df(geo_df):
 
 def utm_to_wgs84_df(geo_df):
     """
-    Converts utm to wgs84
+    Converts gdf from utm to wgs84
     inputs:
     geo_df (geopandas dataframe): a geopandas dataframe in utm
     outputs:
@@ -37,8 +42,10 @@ def utm_to_wgs84_df(geo_df):
 def LineString_to_arr(line):
     """
     Makes an array from linestring
-    inputs: line
-    outputs: array of xy tuples
+    inputs:
+    line (shapely.geometry.LineString): shapely linestring
+    outputs:
+    coords (List[tuples]): list of x,y coordinate pairs
     """
     listarray = []
     for pp in line.coords:
@@ -48,9 +55,11 @@ def LineString_to_arr(line):
 
 def arr_to_LineString(coords):
     """
-    Makes a line feature from a list of xy tuples
-    inputs: coords
-    outputs: line
+    Makes a line feature from an array of xy tuples
+    inputs:
+    coords (List[tuples]): list of x,y coordinate pairs
+    outputs:
+    line (shapely.geometry.LineString): shapely linestring
     """
     points = [None]*len(coords)
     i=0
@@ -60,7 +69,7 @@ def arr_to_LineString(coords):
     line = shapely.geometry.LineString(points)
     return line
 
-def chaikins_corner_cutting(coords, refinements=5):
+def chaikins_corner_cutting(coords, refinements=3):
     """
     Smooths out lines or polygons with Chaikin's method
     inputs:
@@ -81,7 +90,7 @@ def chaikins_corner_cutting(coords, refinements=5):
         i=i+1
     return coords
 
-def smooth_lines(lines,refinements=5):
+def smooth_lines(lines, refinements=5):
     """
     Smooths out shorelines with Chaikin's method
     Shorelines need to be in UTM (or another planar coordinate system)
@@ -106,8 +115,7 @@ def smooth_lines(lines,refinements=5):
 
 def split_line(input_lines_or_multipoints_path,
                output_path,
-               linestrings_or_multi_points,
-               dist_threshold=45):
+               linestrings_or_multi_points):
     """
     Breaks up linestring into multiple linestrings if point to point distance is too high
     inputs:
@@ -119,20 +127,21 @@ def split_line(input_lines_or_multipoints_path,
     returns:
     output_path (str): path to the geodataframe with the new broken up lines
     """
-    ##load lines, project to utm so we can compute distance in meters
+
+    ##load shorelines, project to utm, get crs
     input_lines_or_multipoints = gpd.read_file(input_lines_or_multipoints_path)
     input_lines_or_multipoints = wgs84_to_utm_df(input_lines_or_multipoints)
     source_crs = input_lines_or_multipoints.crs
 
-    ##these empty lists will hold our new lines and the simplify parameter for smoothing
-    all_lines = []
+    ##these lists are gonna hold the broken up lines and their simplified tolerance
     simplify_params = []
+    all_lines = []
     print('splitting lines')
     for idx,row in input_lines_or_multipoints.iterrows():
         line = input_lines_or_multipoints[input_lines_or_multipoints.index==idx].reset_index(drop=True)
-        satname = line['satname'].iloc[0]
 
-        ##getting dist_threshold and simplify_param by satellite name
+        ##setting distance threshold and simplify tolerance based on satellite
+        satname = line['satname'].iloc[0]
         if (satname == 'L5') or (satname == 'L7') or (satname == 'L8') or (satname == 'L9'):
             dist_threshold = 45
             simplify_param = np.sqrt(30**2 + 30**2 + 30**2)
@@ -143,15 +152,12 @@ def split_line(input_lines_or_multipoints_path,
             dist_threshold = 8
             simplify_param = np.sqrt(5**2 + 5**2 + 5**2)
 
-        ##some steps to retain all of the columns
         column_names = list(line.columns)
         column_names.remove('geometry')
         points_geometry = [shapely.Point(x,y) for x,y in line['geometry'].iloc[0].coords]
         attributes = [[line[column_name].values[0]]*len(points_geometry) for column_name in column_names]
         input_coords_dict = dict(zip(column_names, attributes))
         input_coords_dict['geometry'] = points_geometry
-
-        ##this will hold the new lines
         input_coords = gpd.GeoDataFrame(input_coords_dict, crs=source_crs)
         
         ##make the shifted geometries to compute point to point distance
@@ -187,7 +193,7 @@ def split_line(input_lines_or_multipoints_path,
         all_lines.append(new_lines_gdf)
         simplify_params.append(simplify_param)
 
-    ##construct gdf with all lines, set geometry and crs
+    ##concatenate everything into one gdf, set geometry and crs
     all_lines_gdf = pd.concat(all_lines)
     all_lines_gdf['simplify_param'] = simplify_param
     all_lines_gdf = all_lines_gdf.set_geometry('geometry')
@@ -199,7 +205,7 @@ def split_line(input_lines_or_multipoints_path,
     smooth_lines_gdf = smooth_lines(all_lines_gdf)
     print('lines smooth')
 
-    ##set crs to wgs84, save file
+    ##put back in wgs84, save new file
     smooth_lines_gdf = utm_to_wgs84_df(all_lines_gdf)
     smooth_lines_gdf.to_file(output_path)
     

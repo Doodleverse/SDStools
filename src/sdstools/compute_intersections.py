@@ -17,7 +17,7 @@ warnings.filterwarnings("ignore")
 
 def wgs84_to_utm_df(geo_df):
     """
-    Converts wgs84 to UTM
+    Converts gdf from wgs84 to UTM
     inputs:
     geo_df (geopandas dataframe): a geopandas dataframe in wgs84
     outputs:
@@ -29,7 +29,7 @@ def wgs84_to_utm_df(geo_df):
 
 def utm_to_wgs84_df(geo_df):
     """
-    Converts utm to wgs84
+    Converts gdf from utm to wgs84
     inputs:
     geo_df (geopandas dataframe): a geopandas dataframe in utm
     outputs:
