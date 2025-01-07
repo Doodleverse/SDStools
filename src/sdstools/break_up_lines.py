@@ -198,6 +198,8 @@ def split_line(input_lines_or_multipoints_path,
     ##concatenate everything into one gdf, set geometry and crs
     all_lines_gdf = pd.concat(all_lines)
     all_lines_gdf['simplify_param'] = simplify_param
+    all_lines_gdf['date'] = pd.to_datetime(all_lines_gdf['date'], utc=True)
+    all_lines_gdf['year'] = all_lines_gdf['date'].dt.year
     all_lines_gdf = all_lines_gdf.set_geometry('geometry')
     all_lines_gdf = all_lines_gdf.set_crs(source_crs)
     print('lines split')
