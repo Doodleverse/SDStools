@@ -26,7 +26,7 @@ def utm_to_wgs84_df(geo_df):
     gdf_wgs84 = geo_df.to_crs(wgs84_crs)
     return gdf_wgs84
 
-def vertex_filter(shorelines):
+def vertex_filter(shorelines,n_sigma):
     """
     Recursive 3-sigma filter on vertices in shorelines
     Will filter out shorelines that have too many or too few
@@ -57,8 +57,8 @@ def vertex_filter(shorelines):
         count = len(filter_gdf)
         sigma = np.std(filter_gdf['length:vtx'])
         mean = np.mean(filter_gdf['length:vtx'])
-        high_limit = mean+3*sigma
-        low_limit = mean-3*sigma
+        high_limit = mean+n_sigma*sigma
+        low_limit = mean-n_sigma*sigma
         filter_gdf = gdf[gdf['length:vtx']< high_limit]
         filter_gdf = filter_gdf[filter_gdf['length:vtx']> low_limit]
         if mean < 5:
