@@ -1,7 +1,7 @@
 """
 Applying Filters to shorelines and plot
 """
-import geopandas as gpd
+import numpy as np
     
 def min_max_normalize(arr):
     min_val = np.min(arr)
