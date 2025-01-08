@@ -3,8 +3,8 @@ Profiling tool with xarrays I guess?
 """
 
 import rioxarray
-import geopandas
-import pandas
+import geopandas as gpd
+import pandas as pd
 import os
 
 def extract_along_line(xarr, line, raster_res):
