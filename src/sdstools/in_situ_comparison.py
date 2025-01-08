@@ -27,6 +27,47 @@ plt.rcParams['lines.markersize'] = 2
 BASEMAP_DARK = cx.providers.CartoDB.DarkMatter ##dark mode for trend maps
 BASEMAP_IMAGERY = cx.providers.Esri.WorldImagery ##world imagery for error maps
 
+def MAPE(in_situ, sds):
+    mape = np.mean(np.abs((in_situ-sds)/in_situ))*100
+    return mape
+
+def RMSPE(in_situ, sds):
+    rmspe = np.sqrt(np.mean(np.square(((in_situ - sds) / in_situ)), axis=0))*100
+    return rmspe
+
+def RMSE(in_situ, sds):
+    rmse = np.sqrt(np.mean(np.square(in_situ - sds), axis=0))
+    return rmse
+
+def MAE(in_situ, sds):
+    mae = np.mean(abs(in_situ - sds))
+    return mae
+
+def hampel_filter_df(df, hampel_window=10, hampel_sigma=2):
+    """
+    Applies a Hampel Filter
+    """
+  
+    vals = df['cross_distance'].values
+    outlier_idxes = hampel_filter(vals, hampel_window, hampel_sigma)
+    vals[outlier_idxes] = np.nan
+    df['cross_distance'] = vals
+    return df
+
+def hampel_filter_loop(df, hampel_window=5, hampel_sigma=3):
+    df['date'] = df.index
+    num_nans = df['cross_distance'].isna().sum()
+    new_num_nans = None
+    h=0
+    while (num_nans != new_num_nans) and (len(df)>hampel_window):
+        num_nans = df['cross_distance'].isna().sum()
+        df = hampel_filter_df(df, hampel_window=hampel_window, hampel_sigma=hampel_sigma)
+        new_num_nans = df['cross_distance'].isna().sum()
+        df = df.dropna()
+        h=h+1
+    print('hampel iterations: '+str(h))
+    return df
+
 def gb(x1, y1, x2, y2):
     angle = degrees(atan2(y2 - y1, x2 - x1))
     return angle
@@ -190,7 +231,6 @@ def get_trends(transect_timeseries_path,
                            })
     new_geo_df = gpd.GeoDataFrame(new_df, crs=utm_crs, geometry=new_lines)
     new_geo_df_org_crs = new_geo_df.to_crs(org_crs)
-    #new_geo_df_org_crs.to_file(save_path)
     return new_geo_df_org_crs
 
 def add_north_arrow(ax, north_arrow_params):
@@ -586,29 +626,118 @@ def in_situ_comparison(home,
     data_rmse = [rmse_raws, rmse_tides]
     data_mae = [mae_raws, mae_tides]
 
-    ##removing nones
+    ##errors
+    err_raws_concat = comparisons_df['cross_distance_in_situ']-comparisons_df['cross_distance_sds_raw']
+    err_tides_concat = comparisons_df['cross_distance_in_situ']-comparisons_df['cross_distance_sds_tide']
+
+    ##MAPE
+    MAPE_raw = MAPE(comparisons_df['cross_distance_in_situ'], comparisons_df['cross_distance_sds_raw'])
+    MAPE_tide = MAPE(comparisons_df['cross_distance_in_situ'], comparisons_df['cross_distance_sds_tide'])
+
+    ##RMSPE
+    RMSPE_raw = RMSPE(comparisons_df['cross_distance_in_situ'], comparisons_df['cross_distance_sds_raw'])
+    RMSPE_tide = RMSPE(comparisons_df['cross_distance_in_situ'], comparisons_df['cross_distance_sds_tide'])
+
+    ##absolute errors
     abs_raws_concat = np.abs(comparisons_df['cross_distance_in_situ']-comparisons_df['cross_distance_sds_raw'])
     abs_tides_concat = np.abs(comparisons_df['cross_distance_in_situ']-comparisons_df['cross_distance_sds_tide'])
 
-    ##removing nones
-    square_err_raws_concat = (comparisons_df['cross_distance_in_situ']-comparisons_df['cross_distance_sds_raw'])**2
-    square_err_tides_concat = (comparisons_df['cross_distance_in_situ']-comparisons_df['cross_distance_sds_tide'])**2
+    ##MAE
+    MAE_raw = MAE(comparisons_df['cross_distance_in_situ'], comparisons_df['cross_distance_sds_raw'])
+    MAE_tide = MAE(comparisons_df['cross_distance_in_situ'], comparisons_df['cross_distance_sds_tide'])
+    
+    ##RMSE
+    RMSE_raw = RMSE(comparisons_df['cross_distance_in_situ'], comparisons_df['cross_distance_sds_raw'])
+    RMSE_tide = RMSE(comparisons_df['cross_distance_in_situ'], comparisons_df['cross_distance_sds_tide'])
 
     ##iqr of sds values
     iqr_sds_raw = np.nanquantile(df_raw['cross_distance'], 0.75)-np.nanquantile(df_raw['cross_distance'], 0.25)
     iqr_sds_tide = np.nanquantile(df_tide['cross_distance'], 0.75)-np.nanquantile(df_tide['cross_distance'], 0.25)
 
+    ##labels for error distribution plots
+    raw_lab = ('Raw\nMean Error = ' +
+              str(np.round(np.mean(err_raws_concat), decimals=3)) + ' m' +
+              '\nsd = ' + str(np.round(np.std(err_raws_concat), decimals=3)) + ' m' +
+              '\n# of Observations = ' + str(len(err_raws_concat))
+              )
+    tide_lab = ('Tidally Corrected\nMean Error = ' +
+               str(np.round(np.mean(err_tides_concat), decimals=3)) + ' m' +
+              '\nsd = ' + str(np.round(np.std(err_tides_concat), decimals=3)) + ' m' +
+               '\n# of Observations = ' + str(len(err_tides_concat))
+               )
+
+
+    """
+    Plotting error distributions
+    """
+    with plt.rc_context({"figure.figsize":(12,12)}):
+        plt.subplot(2,1,1)
+        plt.suptitle(SITE)
+        plt.hist(err_raws_concat,
+                 label=raw_lab,
+                 color='gray',
+                 density=False,
+                 bins=np.arange(min(err_raws_concat),max(err_raws_concat),1))
+        ax = plt.gca()
+        ax2 = ax.twinx()
+        ax2.hist(err_raws_concat,
+                 label='Cumulative',
+                 histtype='step',
+                 color='blue',
+                 cumulative=True,
+                 density=True,
+                 bins=np.arange(min(err_raws_concat),max(err_raws_concat),1))
+        ax2.set_yticks([0,0.25,0.5,0.75,1])
+        plt.hlines([0.5],min(err_raws_concat), max(err_raws_concat), colors = ['k'])
+        plt.minorticks_on()
+        ax.set_xlabel('Error (In-Situ vs. SDS, m)')
+        ax.set_ylabel('Count')
+        ax2.set_ylabel('Cumulative Density (1/m)')
+        ax.set_xlim(min(err_raws_concat), max(err_raws_concat))
+        ax.legend(loc='upper left')
+        
+        plt.subplot(2,1,2)
+        plt.hist(err_tides_concat,
+                 label=tide_lab,
+                 color='rosybrown',
+                 density=False,
+                 bins=np.arange(min(err_tides_concat),max(err_tides_concat),1))
+        ax = plt.gca()
+        ax2 = ax.twinx()
+        plt.hist(err_tides_concat,
+                 label='Cumulative',
+                 histtype='step',
+                 color='blue',
+                 cumulative=True,
+                 density=True,
+                 bins=np.arange(min(err_tides_concat),max(err_tides_concat),1))
+        ax2.set_yticks([0,0.25,0.5,0.75,1])
+        plt.hlines([0.5],min(err_tides_concat), max(err_tides_concat), colors = ['k'])
+        plt.minorticks_on()
+        ax.set_xlabel('Error (In-Situ vs. SDS, m)')
+        ax.set_ylabel('Count')
+        ax2.set_ylabel('Cumulative Density (1/m)')
+        ax.set_xlim(min(err_tides_concat), max(err_tides_concat))
+        ax.legend(loc='upper left')
+        plt.tight_layout()
+        plt.savefig(os.path.join(analysis_outputs, SITE+'_err_dists'+EXT), dpi=DPI)
+        plt.close('all')
+        
     ##labels for absolute error distribution plots
     raw_lab = ('Raw\nMAE = ' +
-              str(np.round(np.mean(abs_raws_concat), decimals=3)) +
-              '\nRMSE = ' + str(np.round(np.sqrt(square_err_raws_concat.mean()), decimals=3)) +
-              '\nSDS Position IQR = ' + str(np.round(iqr_sds_raw, decimals=3)) + 
+              str(np.round(MAE_raw, decimals=3)) + ' m' +
+              '\nRMSE = ' + str(np.round(RMSE_raw, decimals=3)) + ' m' +
+              '\nMAPE = ' + str(np.round(MAPE_raw, decimals=3)) + '%' +
+              '\nRMSPE = ' + str(np.round(RMSPE_raw, decimals=3)) + '%' +
+              '\nSDS Position IQR = ' + str(np.round(iqr_sds_raw, decimals=3)) + ' m' +
               '\n# of Observations = ' + str(len(abs_raws_concat))
               )
     tide_lab = ('Tidally Corrected\nMAE = ' +
-               str(np.round(np.mean(abs_tides_concat), decimals=3)) +
-               '\nRMSE = ' + str(np.round(np.sqrt(square_err_tides_concat.mean()), decimals=3)) +
-               '\nSDS Position IQR = ' + str(np.round(iqr_sds_tide, decimals=3)) + 
+               str(np.round(MAE_tide, decimals=3)) + ' m' +
+               '\nRMSE = ' + str(np.round(RMSE_tide, decimals=3)) + ' m' +
+               '\nMAPE = ' + str(np.round(MAPE_tide, decimals=3)) + '%' +
+               '\nRMSPE = ' + str(np.round(RMSPE_tide, decimals=3)) + '%' +
+               '\nSDS Position IQR = ' + str(np.round(iqr_sds_tide, decimals=3)) + ' m' +
                '\n# of Observations = ' + str(len(abs_tides_concat))
                )
 
@@ -894,15 +1023,15 @@ def in_situ_comparison(home,
 """
 Example call below
 """
-##home = os.path.join(os.getcwd(), 'in_situ_comparison_test')
-##site='CapeCod'
-##window=10
-##plot_timeseries=False
-##in_situ_comparison(home,
-##                   site,
-##                   window,
-##                   plot_timeseries=plot_timeseries,
-##                   legend_loc=(0.4,0.6),
-##                   north_arrow_params=(0.05,0.2,0.1),
-##                   scale_bar_loc='lower left',
-##                   trend_scale=100)
+home = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),'examples', 'in_situ_comparison_example')
+site='CapeCod'
+window=10
+plot_timeseries=False
+in_situ_comparison(home,
+                   site,
+                   window,
+                   plot_timeseries=plot_timeseries,
+                   legend_loc=(0.4,0.6),
+                   north_arrow_params=(0.05,0.2,0.1),
+                   scale_bar_loc='lower left',
+                   trend_scale=100)
