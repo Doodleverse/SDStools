@@ -65,6 +65,7 @@ def transect_timeseries(shorelines_path,
     print('Loading transects, computing start coordinates')
     transects_gdf = gpd.read_file(transects_path)
     transects_gdf = wgs84_to_utm_df(transects_gdf)
+    crs = transects_gdf
     transects_gdf = transects_gdf.reset_index(drop=True)
     transects_gdf['geometry_saved'] = transects_gdf['geometry']
     coords = transects_gdf['geometry_saved'].get_coordinates()
@@ -80,13 +81,21 @@ def transect_timeseries(shorelines_path,
     # spatial join shorelines to transects
     joined_gdf = gpd.sjoin(shorelines_gdf, transects_gdf, predicate='intersects')
     
-    # get points, keep second point if multipoint (most seaward intersection)
+    # get points, keep highest cross distance point if multipoint (most seaward intersection)
     joined_gdf['intersection_point'] = joined_gdf.geometry.intersection(joined_gdf['geometry_saved'])
     for i in range(len(joined_gdf['intersection_point'])):
         point = joined_gdf['intersection_point'].iloc[i]
+        start_x = joined_gdf['x_start'].iloc[i]
+        start_y = joined_gdf['y_start'].iloc[i]
         if type(point) == shapely.MultiPoint:
             points = [shapely.Point(coord) for coord in point.geoms]
-            last_point = points[-1]
+            points = gpd.GeoSeries(points, crs=crs)
+            coords = points.get_coordinates()
+            dists = [None]*len(coords)
+            for j in range(len(coords)):
+                dists[j] = cross_distance(start_x, start_y, coords['x'].iloc[j], coords['y'].iloc[j])
+            max_dist_idx = np.argmax(dists)
+            last_point = points[max_dist_idx]
             joined_gdf['intersection_point'].iloc[i] = last_point
     # get x's and y's for intersections
     intersection_coords = joined_gdf['intersection_point'].get_coordinates()
@@ -100,11 +109,15 @@ def transect_timeseries(shorelines_path,
                                                   joined_gdf['intersect_y'])
     ##clean up columns
     joined_gdf = joined_gdf.rename(columns={'date':'dates'})
-    joined_df = joined_gdf.drop(columns=['geometry', 'type', 'geometry_saved',
+    drop_columns = ['geometry', 'type', 'geometry_saved',
                                          'x_start', 'y_start', 'intersection_point',
                                           'index_right0','index'
                                          ]
-                                )
+    for col in drop_columns:
+        try:
+            joined_df = joined_gdf.drop(columns=[col])
+        except:
+            pass
 
     ##pivot to make the matrix
     joined_mat = joined_df.pivot(index='dates', columns='transect_id', values='cross_distance')
