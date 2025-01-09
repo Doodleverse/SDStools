@@ -109,16 +109,16 @@ def transect_timeseries(shorelines_path,
                                                   joined_gdf['intersect_y'])
     ##clean up columns
     joined_gdf = joined_gdf.rename(columns={'date':'dates'})
-    drop_columns = ['geometry', 'type', 'geometry_saved',
-                                         'x_start', 'y_start', 'intersection_point',
-                                          'index_right0','index'
-                                         ]
-    for col in drop_columns:
-        try:
-            joined_df = joined_gdf.drop(columns=[col])
-        except:
-            pass
+    keep_columns = ['dates','satname','geoaccuracy','cloud_cover','transect_id',
+                    'intersect_x','intersect_y','cross_distance']
+    joined_gdf = joined_gdf.rename(columns={'date':'dates'}).reset_index(drop=True)
 
+    for col in joined_gdf.columns:
+        if col not in keep_columns:
+            joined_gdf = joined_gdf.drop(columns=[col])
+
+    joined_df = joined_gdf.reset_index(drop=True)
+    
     ##pivot to make the matrix
     joined_mat = joined_df.pivot(index='dates', columns='transect_id', values='cross_distance')
     joined_mat.columns.name = None
