@@ -101,7 +101,6 @@ def smooth_lines(lines, refinements=5):
     outputs:
     new_lines (gdf): gdf of smooth lines in UTM
     """
-    lines['geometry'] = lines['geometry']
     new_lines = lines.copy()
     for i in range(len(new_lines)):
         simplify_param = new_lines.iloc[i]['simplify_param']
@@ -109,8 +108,7 @@ def smooth_lines(lines, refinements=5):
         coords = LineString_to_arr(line)
         refined = chaikins_corner_cutting(coords, refinements=refinements)
         refined_geom = arr_to_LineString(refined)
-        new_lines['geometry'][i] = refined_geom
-    new_lines
+        new_lines['geometry'].iloc[i] = refined_geom
     return new_lines
 
 def split_line(input_lines_or_multipoints_path,
@@ -211,7 +209,7 @@ def split_line(input_lines_or_multipoints_path,
         print('lines smooth')
 
         ##put back in wgs84, save new file
-        smooth_lines_gdf = utm_to_wgs84_df(all_lines_gdf)
+        smooth_lines_gdf = utm_to_wgs84_df(smooth_lines_gdf)
         smooth_lines_gdf.to_file(output_path)
 
     else:
