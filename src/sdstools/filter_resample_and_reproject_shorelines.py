@@ -9,6 +9,8 @@ import geopandas as gpd
 import analysis
 import datetime
 import shapely
+import timeseries_filter
+import timeseries_resample
 
 def arr_to_LineString(coords):
     """
@@ -237,7 +239,7 @@ def transect_timeseries_to_wgs84(transect_timeseries_merged_path,
     points_gdf_wgs84.to_file(points_wgs84_path)
     
 def main(transect_timeseries_path,
-         config_gdf_path,
+         transects_path,
          output_folder,
          transect_spacing,
          which_timedelta,
@@ -270,6 +272,7 @@ def main(transect_timeseries_path,
     ##Load in data
     timeseries_data = pd.read_csv(transect_timeseries_path)
     timeseries_data['dates'] = pd.to_datetime(timeseries_data['dates'],
+                                              utc=True,
                                               format='%Y-%m-%dT%H:%M:%S')
     config_gdf = gpd.read_file(config_gdf_path)
     transects = config_gdf #config_gdf[config_gdf['type']=='transect']
@@ -289,18 +292,15 @@ def main(transect_timeseries_path,
         transect_ids[i] = transect_id
         
         ##Timeseries processing
-        data = pd.DataFrame({'date':dates,
-                             'position':select_timeseries})
-        timeseries_analysis_result, output_df, new_timedelta = analysis.main_df(data,
-                                                                            time_dir,
-                                                                            transect_id,
-                                                                            which_timedelta,
-                                                                            median_filter_window=median_filter_window,
-                                                                            timedelta=timedelta)
-        output_df = output_df.set_index(['date'])
-        output_df = output_df.rename(columns = {'position':transect_id})
+        data = pd.DataFrame({'dates':dates,
+                             'cross_distance':select_timeseries})
+        filtered_data = timeseries_filter.hampel_filter_loop(df, hampel_window=5, hampel_sigma=3)
+        filtered_data = timeseries_filter.change_filter_loop(filtered_data, iterations=1, q=0.75)
+        filtered_data = timeseries_resample.resample_timeseries(filtered_data, timedelta)
+        filtered_data = timeseries_resample.fill_nans(filtered_data)
+        output_df = output_df.rename(columns = {'cross_distance':transect_id})
         timeseries_dfs[i] = output_df
-        timedeltas[i] = new_timedelta
+        timedeltas[i] = timedelta
 
     ##Remove Nones in case there were transects in config_gdf with no timeseries data
     transect_ids = [ele for ele in transect_ids if ele is not None]
