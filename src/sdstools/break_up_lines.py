@@ -90,25 +90,30 @@ def chaikins_corner_cutting(coords, refinements=3):
         i=i+1
     return coords
 
-def smooth_lines(lines, refinements=5):
+def smooth_lines(lines,refinements=5):
     """
     Smooths out shorelines with Chaikin's method
     Shorelines need to be in UTM (or another planar coordinate system)
 
     inputs:
-    lines (gdf): gdf of extracted shorelines in UTM
+    shorelines (gdf): gdf of extracted shorelines in UTM
     refinements (int): number of refinemnets for Chaikin's smoothing algorithm
     outputs:
     new_lines (gdf): gdf of smooth lines in UTM
     """
+    lines = wgs84_to_utm_df(lines)
+    lines['geometry'] = lines['geometry']
+    new_geometries = [None]*len(lines)
     new_lines = lines.copy()
     for i in range(len(new_lines)):
-        simplify_param = new_lines.iloc[i]['simplify_param']
-        line = new_lines.iloc[i]['geometry'].simplify(simplify_param)
+        simplify_param = new_lines['simplify_param'].iloc[i]
+        line = new_lines.iloc[i]['geometry']
+        line = line.simplify(simplify_param)
         coords = LineString_to_arr(line)
         refined = chaikins_corner_cutting(coords, refinements=refinements)
         refined_geom = arr_to_LineString(refined)
-        new_lines['geometry'].iloc[i] = refined_geom
+        new_geometries[i] = refined_geom
+    new_lines['geometry'] = new_geometries
     return new_lines
 
 def split_line(input_lines_or_multipoints_path,
