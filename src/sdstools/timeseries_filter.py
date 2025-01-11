@@ -6,7 +6,13 @@ import HampelFilter.hampel_filter as hampel_filter
 
 def hampel_filter_df(df, hampel_window=10, hampel_sigma=2):
     """
-    Applies a Hampel Filter
+    Applies Hampel Filter once
+    inputs:
+    df (pandas DataFrame): dataframe with columns 'dates' and 'cross_distance'
+    hampel_window (int): odd integer, the kernel size for the filter
+    hampel_sigma (float): number of stds to filter between
+    outputs:
+    df (pandas DataFrame): filtered dataframe
     """
   
     vals = df['cross_distance'].values
@@ -16,6 +22,15 @@ def hampel_filter_df(df, hampel_window=10, hampel_sigma=2):
     return df
 
 def hampel_filter_loop(df, hampel_window=5, hampel_sigma=3):
+    """
+    Recursively applies Hampel Filter
+    inputs:
+    df (pandas DataFrame): dataframe with columns 'dates' and 'cross_distance'
+    hampel_window (int): odd integer, the kernel size for the filter
+    hampel_sigma (float): number of stds to filter between
+    outputs:
+    df (pandas DataFrame): filtered dataframe
+    """
     df['date'] = df.index
     num_nans = df['cross_distance'].isna().sum()
     new_num_nans = None
@@ -31,7 +46,14 @@ def hampel_filter_loop(df, hampel_window=5, hampel_sigma=3):
 
 def change_filter(df, q=0.75):
     """
-    Applies a filter on shoreline change
+    Applies a filter on shoreline change, everything with a change rate greater
+    than the qth percentile gets dropped
+
+    inputs:
+    df (pandas DataFrame): dataframe with columns 'dates' and 'cross_distance'
+    q (float): upper percentile to filter below
+    outputs:
+    df (pandas DataFrame): filtered dataframe
     """
     vals = df['cross_distance'].values
     time = df['dates'] - df['dates'].iloc[0]
@@ -47,6 +69,18 @@ def change_filter(df, q=0.75):
     return df
 
 def change_filter_loop(df, iterations=1, q=0.75):
+    """
+    Applies a filter on shoreline change, everything with a change rate greater
+    than the qth percentile gets dropped
+
+    inputs:
+    df (pandas DataFrame): dataframe with columns 'dates' and 'cross_distance'
+    iterations (int): number of iterations for filter
+    q (float): upper percentile to filter below
+    outputs:
+    df (pandas DataFrame): filtered dataframe
+    """
+    
     h=0
     for i in range(iterations):
         df = change_filter(df, q=q)
