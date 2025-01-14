@@ -56,6 +56,7 @@ def compute_otsu_threshold(in_tiff, out_tiff):
     stacked[stacked==src.meta['nodata']]=0
     rgb[rgb==src.meta['nodata']]=0
 
+    ##compute thresholds
     thresholds_swir = threshold_multiotsu(swir)
     thresholds_nir = threshold_multiotsu(nir)
 
@@ -81,7 +82,8 @@ def compute_otsu_threshold(in_tiff, out_tiff):
     plt.imshow(binary_image_nir, alpha=0.25, cmap='jet')
     plt.xticks([],[])
     plt.yticks([],[])
-    plt.show()
+    plt.savefig(os.path.splitext(out_tiff)[0]+'_results.jpg',dpi=500)
+    plt.close('all')
     
     # Define the metadata for the new geotiff
     transform = from_origin(src.bounds.left, src.bounds.top, src.res[0], src.res[1])
@@ -100,6 +102,16 @@ def compute_otsu_threshold(in_tiff, out_tiff):
     return out_tiff
 
 def batch_compute_otsu_threshold(images, out_folder):
+    """
+    Compute Otsu threshold on list of images
+
+    inputs:
+    images (list): list of ms tiffs
+    out_folder (str): path to save outputs to
+
+    outputs:
+    
+    """
     try:
         os.mkdir(out_folder)
     except:
@@ -111,6 +123,8 @@ def batch_compute_otsu_threshold(images, out_folder):
         out_image = os.path.join(out_folder, name_no_ext + '_otsu.tif')
         compute_otsu_threshold(image, out_image)
         
+    return out_folder
+
 def binary_raster_to_vector(in_tiff, out_geojson):
     """
     Converts a binary raster to a vector file using gdal_polygonize.
@@ -129,7 +143,14 @@ def binary_raster_to_vector(in_tiff, out_geojson):
 
 def batch_binary_raster_to_vector(in_folder, out_folder):
     """
-    Converts a binary raster to a vector file using gdal_polygonize.
+    Converts a binary raster to a vector file using gdal_contour.
+
+    inputs:
+    in_folder (str): path to input otsu threshold rasters (.tif)
+    out_folder (str): path to dir to save contours to
+
+    outputs:
+    out_folder (str): path to dir to save contours to
     """
     try:
         os.mkdir(out_folder)
@@ -145,6 +166,15 @@ def batch_binary_raster_to_vector(in_folder, out_folder):
 
 def contours_to_lines(in_geojson, out_geojson, date):
     """
+    Converts contour to shoreline
+
+    inputs:
+    in_geojson (str): path to the contour (.geojson)
+    out_geojson (str): path to save the shoreline to (.geojson)
+    date (str): datetime str in '%Y-%m-%d-%H-%M-%S' format
+
+    outputs:
+    out_geojson (str): path to save shoreline to (.geojson)
     """
     gdf = gpd.read_file(in_geojson)
     gdf = gdf[gdf['val']==1]
@@ -155,6 +185,14 @@ def contours_to_lines(in_geojson, out_geojson, date):
 
 def batch_contours_to_lines(in_folder, out_folder):
     """
+    converts contours to lines
+
+    inputs:
+    in_folder (str): path to dir containing contours
+    out_folder (str): path to dir to save shorelines to
+
+    outputs:
+    out_folder (str): path to dir to save shorelines to
     """
     try:
         os.mkdir(out_folder)
@@ -183,6 +221,14 @@ def utm_to_wgs84_df(geo_df):
 
 def merge_lines(in_folder, out_file):
     """
+    Merges shorelines into one geojson
+
+    inputs:
+    in_folder (str): dir containing lines
+    out_file (str): file to save shorelines to (.geojson)
+
+    outputs:
+    out_file (str): file to save shorelines to (.geojson)
     """
     lines = glob.glob(in_folder + '/*.geojson')
     gdfs = [gpd.read_file(line) for line in lines]
@@ -192,6 +238,17 @@ def merge_lines(in_folder, out_file):
     return out_file
 
 def get_images_for_analysis(folder, good_bad, thresh=0.335):
+    """
+    gets satellite images suitabile for analysis
+
+    inputs:
+    folder (str): folder of ms images
+    good_bad (str): path to the image suitability results
+    thresh (float): threshold for model
+
+    outputs:
+    out_images (list): list of suitable images for analysis
+    """
     good_bad_df = pd.read_csv(good_bad)
     good_bad_df['dates'] = [os.path.basename(path)[0:19] for path in good_bad_df['im_paths']]
     images = glob.glob(folder + '/*.tif')
