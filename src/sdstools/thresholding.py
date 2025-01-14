@@ -63,8 +63,8 @@ def compute_otsu_threshold(in_tiff, out_tiff):
     # Apply the threshold to create a binary image
     binary_image_swir = swir > min(thresholds_swir)
     binary_image_nir = nir > min(thresholds_nir)
-    
-    #average_binary_image = binary_image_mndwi
+
+    # comparison plot, not much difference between swir and nir
     plt.subplot(3,1,1)
     plt.title('RGB')
     plt.imshow(rgb_disp.astype('uint8'))
