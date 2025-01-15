@@ -116,6 +116,35 @@ def smooth_lines(lines,refinements=2):
     new_lines['geometry'] = new_geometries
     return new_lines
 
+def explode_multilinestrings(gdf):
+    """
+    Explodes any MultiLineString objects in a GeoDataFrame into individual LineStrings,
+    and returns a new GeoDataFrame with these LineStrings replacing the original MultiLineStrings.
+
+    Parameters:
+    gdf (GeoDataFrame): A GeoDataFrame containing various geometry types.
+
+    Returns:
+    GeoDataFrame: A new GeoDataFrame with MultiLineStrings exploded into LineStrings.
+    """
+    # Filter out MultiLineStrings
+    multilinestrings = gdf[gdf['geometry'].type == 'MultiLineString']
+    
+    # Explode the MultiLineStrings, if any are present
+    if not multilinestrings.empty:
+        exploded_multilinestrings = multilinestrings.explode().reset_index(drop=True)
+        
+        # Remove original MultiLineStrings from the original DataFrame
+        gdf = gdf[gdf['geometry'].type != 'MultiLineString']
+        
+        # Append exploded MultiLineStrings back to the original DataFrame
+        final_gdf = pd.concat([gdf, exploded_multilinestrings], ignore_index=True)
+    else:
+        # No MultiLineStrings present, return original DataFrame unchanged
+        final_gdf = gdf
+
+    return final_gdf
+
 def split_line(input_lines_or_multipoints_path,
                output_path,
                linestrings_or_multi_points,
@@ -137,6 +166,9 @@ def split_line(input_lines_or_multipoints_path,
     input_lines_or_multipoints = gpd.read_file(input_lines_or_multipoints_path)
     input_lines_or_multipoints = wgs84_to_utm_df(input_lines_or_multipoints)
     source_crs = input_lines_or_multipoints.crs
+
+    # Break any MultiLineStrings into individual LineStrings
+    input_lines_or_multipoints = explode_multilinestrings(input_lines_or_multipoints)
 
     ##these lists are gonna hold the broken up lines and their simplified tolerance
     simplify_params = []
