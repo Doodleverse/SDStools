@@ -87,6 +87,10 @@ def merge_multiple_transect_time_series(transect_time_series_list,
 
     inputs:
     transect_time_series_list (list): list of transect_time_series_merged.csvs
+    transects_path (str): path to transects, must have col 'transect_id', these should be integers in ascending order along the shore
+    mean_savepath (str): path to save the mean shorelines
+    conf_savepath (str): path to save the confidence polygons
+
     """
 
     ##load all the transect time series, compute cross distance means, mins, maxes
@@ -190,7 +194,6 @@ def merge_multiple_transect_time_series(transect_time_series_list,
                 gdf_mean_geoms.append(mean_shoreline_line)
                 gdf_mean_dates.append(date)
             elif len(shoreline_eastings_upper[k])==1:
-                print(shoreline_eastings_upper[k])
                 # create a new point by adding a small amount to the x value and y value of the point
                 shoreline_eastings_upper_list = [shoreline_eastings_upper[k][0],shoreline_eastings_upper[k][0]+0.00001]
                 shoreline_eastings_lower_list = [shoreline_eastings_lower[k][0],shoreline_eastings_lower[k][0]+0.00001]
@@ -218,7 +221,6 @@ def merge_multiple_transect_time_series(transect_time_series_list,
     
     gdf_mean_geodf.to_file(mean_savepath)
     gdf_confidence_intervals_geodf.to_file(conf_savepath)
-    return big_df, gdf_mean_geodf, gdf_confidence_intervals_geodf
 
 
 ##big_df,gdf_mean_geodf, gdf_confidence_intervals_df = merge_multiple_transect_time_series([r'E:\TCA\analysis_ready_data\Elwha\no_corrections\raw_transect_time_series_merged.csv',
