@@ -81,7 +81,10 @@ def utm_to_wgs84_df(geo_df):
 def merge_multiple_transect_time_series(transect_time_series_list,
                                         transects_path,
                                         mean_savepath,
-                                        conf_savepath):
+                                        conf_savepath,
+                                        boundary_transect_ids = [(1,153),
+                                                                 (154, 179),
+                                                                 (180, 358)]):
     """
     Computes uncertainty bands from list of transect_time_series_merged.csvs
 
@@ -90,7 +93,7 @@ def merge_multiple_transect_time_series(transect_time_series_list,
     transects_path (str): path to transects, must have col 'transect_id', these should be integers in ascending order along the shore
     mean_savepath (str): path to save the mean shorelines
     conf_savepath (str): path to save the confidence polygons
-
+    boundary_transect_ids (list): list of tuples with ids that define where to start and end lines
     """
 
     ##load all the transect time series, compute cross distance means, mins, maxes
@@ -99,22 +102,25 @@ def merge_multiple_transect_time_series(transect_time_series_list,
     dfs = [None]*len(transect_time_series_list)
     i=0
     for ts in transect_time_series_list:
-        dfs[i] = pd.read_csv(ts)
+        df = pd.read_csv(ts)
+        dfs[i] = df
         i=i+1
     dfList = [df.set_index(['dates', 'transect_id']) for df in dfs]
+    dfList = [df.loc[~df.index.duplicated(keep='first')] for df in dfs]
     big_df = pd.concat(dfList, axis=1)
     big_df = big_df.dropna()
     big_df['cross_distance_means'] = np.mean(big_df['cross_distance'],axis=1)
     big_df['cross_distance_maxes'] = np.max(big_df['cross_distance'],axis=1)
     big_df['cross_distance_mins'] = np.min(big_df['cross_distance'],axis=1)
-    keep_cols = ['cross_distance_means','cross_distance_maxes','cross_distance_mins']
+    big_df['cross_distance_range'] = big_df['cross_distance_maxes'] - big_df['cross_distance_mins']
+    keep_cols = ['dates','transect_id','cross_distance_means','cross_distance_maxes','cross_distance_mins','cross_distance_range']
     for col in big_df.columns:
         if col not in keep_cols:
             try:
                 big_df = big_df.drop(columns=[col])
             except:
                 pass
-    big_df = big_df.reset_index(level=[0,1])
+    big_df = big_df.loc[:,~big_df.columns.duplicated()].copy()
     big_df['transect_id'] = big_df['transect_id'].astype(int)
     big_df['dates'] = pd.to_datetime(big_df['dates'],utc=True)
 
@@ -144,92 +150,102 @@ def merge_multiple_transect_time_series(transect_time_series_list,
     big_df['shore_y_utm_min'] = big_df['y_start']+big_df['cross_distance_mins']*np.sin(big_df['angle'])
     ##make mean shoreline file and uncertainy polygon
     dates = np.unique(big_df['dates'])
-    transect_ids = np.unique(big_df['transect_id'])
+    transect_ids_all = np.unique(big_df['transect_id'])
+    all_lines = [None]*len(boundary_transect_ids)
+    all_polys = [None]*len(boundary_transect_ids)
     ###Should have length of projected time
+    for b in range(len(boundary_transect_ids)):
+        boundary = boundary_transect_ids[b]
+        boundary_start = boundary[0]
+        boundary_end = boundary[1]
+        transect_ids = transect_ids_all[(transect_ids_all>=boundary_start) & (transect_ids_all<=boundary_end)]
+        gdf_mean_dates = []
+        gdf_mean_geoms = []
 
-    gdf_mean_dates = []
-    gdf_mean_geoms = []
+        gdf_confidence_intervals_dates = [] 
+        gdf_confidence_intervals_geoms = []
+        ###Loop over projected time
+        for i in range(len(dates)):
+            ###Make empty lists to hold mean coordinates, upper and lower conf coordinates
+            ###These are for one time
+            date = dates[i]
+            proj_df = big_df[big_df['dates']==date].reset_index(drop=True)
+            shoreline_eastings = [None]*len(transect_ids)
+            shoreline_northings = [None]*len(transect_ids)
+            shoreline_eastings_upper = [None]*len(transect_ids)
+            shoreline_northings_upper = [None]*len(transect_ids)
+            shoreline_eastings_lower = [None]*len(transect_ids)
+            shoreline_northings_lower = [None]*len(transect_ids)
+            timestamp = [date]*len(transect_ids)
+            for j in range(len(transect_ids)):
+                transect_id = transect_ids[j]
+                proj_df_filt = proj_df[proj_df['transect_id']==transect_id].reset_index(drop=True)
+                if proj_df_filt.empty:
+                    continue
+                else:
+                    shoreline_eastings[j] = proj_df_filt['shore_x_utm_mean'].iloc[0]
+                    shoreline_northings[j] = proj_df_filt['shore_y_utm_mean'].iloc[0]
+                    shoreline_eastings_upper[j] = proj_df_filt['shore_x_utm_max'].iloc[0]
+                    shoreline_northings_upper[j] = proj_df_filt['shore_y_utm_max'].iloc[0]
+                    shoreline_eastings_lower[j] = proj_df_filt['shore_x_utm_min'].iloc[0]
+                    shoreline_northings_lower[j] = proj_df_filt['shore_y_utm_min'].iloc[0]
+            shoreline_eastings_upper = split_list_at_none(shoreline_eastings_upper)
+            shoreline_eastings_lower = split_list_at_none(shoreline_eastings_lower)
+            shoreline_northings_upper = split_list_at_none(shoreline_northings_upper)
+            shoreline_northings_lower = split_list_at_none(shoreline_northings_lower)
+            shoreline_eastings = split_list_at_none(shoreline_eastings)
+            shoreline_northings = split_list_at_none(shoreline_northings)
+            for k in range(len(shoreline_eastings_upper)):
+                if len(shoreline_eastings_upper[k])>1:
+                    confidence_interval_x = np.concatenate((shoreline_eastings_upper[k], list(reversed(shoreline_eastings_lower[k]))))
+                    confidence_interval_y = np.concatenate((shoreline_northings_upper[k], list(reversed(shoreline_northings_lower[k]))))
+                    confidence_interval_polygon = lists_to_Polygon(confidence_interval_x, confidence_interval_y)
+                    gdf_confidence_intervals_geoms.append(confidence_interval_polygon)
+                    gdf_confidence_intervals_dates.append(date)
+                    mean_shoreline_line = lists_to_LineString(shoreline_eastings[k], shoreline_northings[k])
+                    gdf_mean_geoms.append(mean_shoreline_line)
+                    gdf_mean_dates.append(date)
+                elif len(shoreline_eastings_upper[k])==1:
+                    # create a new point by adding a small amount to the x value and y value of the point
+                    shoreline_eastings_upper_list = [shoreline_eastings_upper[k][0],shoreline_eastings_upper[k][0]+0.00001]
+                    shoreline_eastings_lower_list = [shoreline_eastings_lower[k][0],shoreline_eastings_lower[k][0]+0.00001]
+                    shoreline_northings_upper_list = [shoreline_northings_upper[k][0],shoreline_northings_upper[k][0]+0.00001]
+                    shoreline_northings_lower_list = [shoreline_northings_lower[k][0],shoreline_northings_lower[k][0]+0.00001]
+                    shoreline_eastings_list = [shoreline_eastings[k][0],shoreline_eastings[k][0]+0.00001]
+                    shoreline_northings_list = [shoreline_northings[k][0],shoreline_northings[k][0]+0.00001]
 
-    gdf_confidence_intervals_dates = [] 
-    gdf_confidence_intervals_geoms = []
-    ###Loop over projected time
-    for i in range(len(dates)):
-        ###Make empty lists to hold mean coordinates, upper and lower conf coordinates
-        ###These are for one time
-        date = dates[i]
-        proj_df = big_df[big_df['dates']==date].reset_index(drop=True)
-        shoreline_eastings = [None]*len(transect_ids)
-        shoreline_northings = [None]*len(transect_ids)
-        shoreline_eastings_upper = [None]*len(transect_ids)
-        shoreline_northings_upper = [None]*len(transect_ids)
-        shoreline_eastings_lower = [None]*len(transect_ids)
-        shoreline_northings_lower = [None]*len(transect_ids)
-        timestamp = [date]*len(transect_ids)
-        for j in range(len(transect_ids)):
-            transect_id = transect_ids[j]
-            proj_df_filt = proj_df[proj_df['transect_id']==transect_id].reset_index(drop=True)
-            if proj_df_filt.empty:
-                continue
-            else:
-                shoreline_eastings[j] = proj_df_filt['shore_x_utm_mean'].iloc[0]
-                shoreline_northings[j] = proj_df_filt['shore_y_utm_mean'].iloc[0]
-                shoreline_eastings_upper[j] = proj_df_filt['shore_x_utm_max'].iloc[0]
-                shoreline_northings_upper[j] = proj_df_filt['shore_y_utm_max'].iloc[0]
-                shoreline_eastings_lower[j] = proj_df_filt['shore_x_utm_min'].iloc[0]
-                shoreline_northings_lower[j] = proj_df_filt['shore_y_utm_min'].iloc[0]
-        shoreline_eastings_upper = split_list_at_none(shoreline_eastings_upper)
-        shoreline_eastings_lower = split_list_at_none(shoreline_eastings_lower)
-        shoreline_northings_upper = split_list_at_none(shoreline_northings_upper)
-        shoreline_northings_lower = split_list_at_none(shoreline_northings_lower)
-        shoreline_eastings = split_list_at_none(shoreline_eastings)
-        shoreline_northings = split_list_at_none(shoreline_northings)
-        for k in range(len(shoreline_eastings_upper)):
-            if len(shoreline_eastings_upper[k])>1:
-                confidence_interval_x = np.concatenate((shoreline_eastings_upper[k], list(reversed(shoreline_eastings_lower[k]))))
-                confidence_interval_y = np.concatenate((shoreline_northings_upper[k], list(reversed(shoreline_northings_lower[k]))))
-                confidence_interval_polygon = lists_to_Polygon(confidence_interval_x, confidence_interval_y)
-                gdf_confidence_intervals_geoms.append(confidence_interval_polygon)
-                gdf_confidence_intervals_dates.append(date)
-                mean_shoreline_line = lists_to_LineString(shoreline_eastings[k], shoreline_northings[k])
-                gdf_mean_geoms.append(mean_shoreline_line)
-                gdf_mean_dates.append(date)
-            elif len(shoreline_eastings_upper[k])==1:
-                # create a new point by adding a small amount to the x value and y value of the point
-                shoreline_eastings_upper_list = [shoreline_eastings_upper[k][0],shoreline_eastings_upper[k][0]+0.00001]
-                shoreline_eastings_lower_list = [shoreline_eastings_lower[k][0],shoreline_eastings_lower[k][0]+0.00001]
-                shoreline_northings_upper_list = [shoreline_northings_upper[k][0],shoreline_northings_upper[k][0]+0.00001]
-                shoreline_northings_lower_list = [shoreline_northings_lower[k][0],shoreline_northings_lower[k][0]+0.00001]
-                shoreline_eastings_list = [shoreline_eastings[k][0],shoreline_eastings[k][0]+0.00001]
-                shoreline_northings_list = [shoreline_northings[k][0],shoreline_northings[k][0]+0.00001]
-
-                confidence_interval_x = np.concatenate((shoreline_eastings_upper_list , list(reversed(shoreline_eastings_lower_list))))
-                confidence_interval_y = np.concatenate((shoreline_northings_upper_list, list(reversed(shoreline_northings_lower_list))))
-                confidence_interval_polygon = lists_to_Polygon(confidence_interval_x, confidence_interval_y)
-                gdf_confidence_intervals_geoms.append(confidence_interval_polygon)
-                gdf_confidence_intervals_dates.append(date)
-                mean_shoreline_line = lists_to_LineString(shoreline_eastings_list, shoreline_northings_list)
-                gdf_mean_geoms.append(mean_shoreline_line)
-                gdf_mean_dates.append(date)
+                    confidence_interval_x = np.concatenate((shoreline_eastings_upper_list , list(reversed(shoreline_eastings_lower_list))))
+                    confidence_interval_y = np.concatenate((shoreline_northings_upper_list, list(reversed(shoreline_northings_lower_list))))
+                    confidence_interval_polygon = lists_to_Polygon(confidence_interval_x, confidence_interval_y)
+                    gdf_confidence_intervals_geoms.append(confidence_interval_polygon)
+                    gdf_confidence_intervals_dates.append(date)
+                    mean_shoreline_line = lists_to_LineString(shoreline_eastings_list, shoreline_northings_list)
+                    gdf_mean_geoms.append(mean_shoreline_line)
+                    gdf_mean_dates.append(date)
 
 
-    gdf_mean_geodf = gpd.GeoDataFrame({'dates':gdf_mean_dates}, geometry = gdf_mean_geoms)
-    gdf_mean_geodf = gdf_mean_geodf.set_crs(crs)
-    gdf_mean_geodf = utm_to_wgs84_df(gdf_mean_geodf)
-    gdf_confidence_intervals_geodf = gpd.GeoDataFrame({'dates':gdf_confidence_intervals_dates}, geometry = gdf_confidence_intervals_geoms)
-    gdf_confidence_intervals_geodf = gdf_confidence_intervals_geodf.set_crs(crs)
-    gdf_confidence_intervals_geodf = utm_to_wgs84_df(gdf_confidence_intervals_geodf)
+        gdf_mean_geodf = gpd.GeoDataFrame({'dates':gdf_mean_dates}, geometry = gdf_mean_geoms)
+        gdf_mean_geodf = gdf_mean_geodf.set_crs(crs)
+        gdf_mean_geodf = utm_to_wgs84_df(gdf_mean_geodf)
+        gdf_confidence_intervals_geodf = gpd.GeoDataFrame({'dates':gdf_confidence_intervals_dates}, geometry = gdf_confidence_intervals_geoms)
+        gdf_confidence_intervals_geodf = gdf_confidence_intervals_geodf.set_crs(crs)
+        gdf_confidence_intervals_geodf = utm_to_wgs84_df(gdf_confidence_intervals_geodf)
+        all_lines[b] = gdf_mean_geodf
+        all_polys[b] = gdf_confidence_intervals_geodf
+        #gdf_mean_geodf.to_file(mean_savepath)
+        #gdf_confidence_intervals_geodf.to_file(conf_savepath)
+    all_lines_gdf = pd.concat(all_lines)
+    all_lines_gdf['year'] = all_lines_gdf['dates'].dt.year
+    all_lines_gdf.to_file(mean_savepath)
+    all_polys_gdf = pd.concat(all_polys)
+    all_polys_gdf['year'] = all_polys_gdf['dates'].dt.year
+    all_polys_gdf.to_file(conf_savepath)
     
-    gdf_mean_geodf.to_file(mean_savepath)
-    gdf_confidence_intervals_geodf.to_file(conf_savepath)
+merge_multiple_transect_time_series([r'E:\TCA\analysis_ready_data\BarterIsland\no_corrections\raw_transect_time_series_merged.csv',
+                                     r'E:\TCA\analysis_ready_data\BarterIsland\no_corrections\raw_transect_time_series_merged_new.csv'
+                                     ],
+                                     r'E:\TCA\analysis_ready_data\BarterIsland\transects\transects.geojson',
+                                     r'E:\TCA\analysis_ready_data\BarterIsland\mean_shorelines.geojson',
+                                     r'E:\TCA\analysis_ready_data\BarterIsland\conf_poly.geojson')
 
-
-##big_df,gdf_mean_geodf, gdf_confidence_intervals_df = merge_multiple_transect_time_series([r'E:\TCA\analysis_ready_data\Elwha\no_corrections\raw_transect_time_series_merged.csv',
-##                                                                                          r'E:\TCA\analysis_ready_data\Elwha\low_slope\tidally_corrected_transect_time_series_merged.csv',
-##                                                                                          r'E:\TCA\analysis_ready_data\Elwha\average_slope\tidally_corrected_transect_time_series_merged.csv',
-##                                                                                          r'E:\TCA\analysis_ready_data\Elwha\high_slope\tidally_corrected_transect_time_series_merged.csv'
-##                                                                                          ],
-##                                                                                         r'E:\TCA\analysis_ready_data\Elwha\transects\transects.geojson',
-##                                                                                         r'E:\TCA\analysis_ready_data\Elwha\mean_shorelines.geojson',
-##                                                                                         r'E:\TCA\analysis_ready_data\Elwha\conf_poly.geojson')
-##
 

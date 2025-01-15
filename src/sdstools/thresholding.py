@@ -258,7 +258,7 @@ def get_images_for_analysis(folder, good_bad, thresh=0.335):
         date = name[0:19]
         filter_df = good_bad_df[good_bad_df['dates']==date]
         score = filter_df['model_scores'].iloc[0]
-        if score>=0.95:
+        if score>=thresh:
             out_images.append(image)
     return out_images
 
