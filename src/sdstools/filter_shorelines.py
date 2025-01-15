@@ -20,7 +20,7 @@ def apply_filters(shorelines,
         shorelines['weighted_overall_score'] = weighted_overall_scores
         shorelines = shorelines[shorelines['weighted_overall_score']>=thresh].reset_index(drop=True)
     elif which_filter == 'image':
-        shorelines = shorelines[shorelines['model_scores']>=thresh]
+        shorelines = shorelines[shorelines['model_scores']>=thresh].reset_index(drop=True)
     elif which_filter == 'seg':
         shorelines = shorelines[shorelines['model_scores_seg']>=thresh].reset_index(drop=True)
     elif which_filter == 'kde':
