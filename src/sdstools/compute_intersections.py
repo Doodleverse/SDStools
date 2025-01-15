@@ -77,12 +77,17 @@ def transect_timeseries(shorelines_path,
     shorelines_gdf = gpd.read_file(shorelines_path)
     shorelines_gdf = wgs84_to_utm_df(shorelines_gdf)
 
+    # join all the shorelines that occured on the same date together
+    shorelines_gdf = shorelines_gdf.dissolve(by='date')
+    shorelines_gdf = shorelines_gdf.reset_index()
+
     print('computing intersections')
     # spatial join shorelines to transects
     joined_gdf = gpd.sjoin(shorelines_gdf, transects_gdf, predicate='intersects')
     
     # get points, keep highest cross distance point if multipoint (most seaward intersection)
     joined_gdf['intersection_point'] = joined_gdf.geometry.intersection(joined_gdf['geometry_saved'])
+
     for i in range(len(joined_gdf['intersection_point'])):
         point = joined_gdf['intersection_point'].iloc[i]
         start_x = joined_gdf['x_start'].iloc[i]
@@ -111,21 +116,33 @@ def transect_timeseries(shorelines_path,
     joined_gdf = joined_gdf.rename(columns={'date':'dates'})
     keep_columns = ['dates','satname','geoaccuracy','cloud_cover','transect_id',
                     'intersect_x','intersect_y','cross_distance']
+
+    # convert the x and y intersection points to the final crs (4326) to match the rest of joined_df
+    points_gdf = gpd.GeoDataFrame(geometry=gpd.points_from_xy(joined_gdf['intersect_x'], joined_gdf['intersect_y']),crs=crs)
+    points_gdf = points_gdf.to_crs('epsg:4326')
+
+    # you have to reset the index here otherwise the intersection point won't match the row correctly
+    # recall that the shorelines were group by dates and that changed the index
     joined_gdf = joined_gdf.rename(columns={'date':'dates'}).reset_index(drop=True)
+
+    joined_gdf['intersect_x'] = points_gdf.geometry.x
+    joined_gdf['intersect_y'] = points_gdf.geometry.y
+
+    # convert the joined_df back to CRS 4326
+    joined_gdf = utm_to_wgs84_df(joined_gdf)
 
     for col in joined_gdf.columns:
         if col not in keep_columns:
             joined_gdf = joined_gdf.drop(columns=[col])
 
     joined_df = joined_gdf.reset_index(drop=True)
-    
     ##pivot to make the matrix
     joined_mat = joined_df.pivot(index='dates', columns='transect_id', values='cross_distance')
     joined_mat.columns.name = None
-    joined_mat.to_csv(output_mat_path)
+    joined_mat.to_csv(output_mat_path,index=False)
     
     ##save file
-    joined_df.to_csv(output_merged_path)
+    joined_df.to_csv(output_merged_path,index=False)
     print('intersections computed')
 
 
