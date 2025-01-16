@@ -1,10 +1,38 @@
 """
 Sharon Fitzpatrick Batiste
 1/16/2024
-This script is meant to be used a directory of downloaded images from CoastSeg/Coastsat. It reads the georeferenced data 
-for each satellite's files, extracts metadata, and plots accuracy over months.It reads data from text files, extracts 
-important metadata, saves the aggregated information to a CSV file, and visualizes the georeferenceing accuracy by grouping
-them by what month the image was captured on for each satellite.
+This script plots the geo-reference accuracy for each image from any of the landsat satellites that have this metric available.
+It reads each satellite directory's metadatafolder and extracts the georeference accuracy for each image.
+Then plots each of these accuracies grouped by what month the image was captured and colored by the satellite it was captured by. 
+Currently works for Landsat 7,8,9.
+
+Expects the provided directory to be in format and each filename containing the metadata files to contain the date the image was captured 
+in the format YYYY-MM-DD-hh-mm-ss_satellite_sessionname.txt . This is the default format from coastsat and coastseg style downloads.
+
+
+sample_session_name
+|_L7
+  |_meta
+    |_2023-12-06-13-25-32_L7_sample_session_name.txt
+    |_2023-12-07-13-25-32_L7_sample_session_name.txt
+|_L8
+  |_meta
+    |_2023-12-06-13-25-32_L8_sample_session_name.txt
+    |_2023-12-07-13-25-32_L8_sample_session_name.txt
+|_L9
+  |_meta
+    |_2023-12-06-13-25-32_L9_sample_session_name.txt
+    |_2023-12-07-13-25-32_L9_sample_session_name.txt
+
+
+Expects the metadata text files to be in a format like the following example below:
+filename	2023-12-11-13-28-02_L7_ID_wra5_datetime01-10-25__03_58_44_ms.tif
+epsg	32617
+acc_georef	11.537
+image_quality	9
+im_width	335
+im_height	334
+
 """
 import os
 import glob
