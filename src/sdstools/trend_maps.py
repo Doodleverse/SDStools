@@ -29,6 +29,14 @@ from math import degrees, atan2, radians
 from scipy import stats
 
 def add_north_arrow(ax, north_arrow_params):
+    """
+    adds a north arrow to a geopandas plot
+
+    inputs:
+    ax (geopandas plot axis): the plot you want to add the north arrow to
+    north_arrow_params (tuple): (x, y, arrow_length)
+
+    """
     x,y,arrow_length = north_arrow_params
     ax.annotate('N', xy=(x, y), xytext=(x, y-arrow_length),
                 arrowprops=dict(facecolor='white', width=2, headwidth=4),
@@ -36,6 +44,18 @@ def add_north_arrow(ax, north_arrow_params):
                 xycoords=ax.transAxes)
     
 def gb(x1, y1, x2, y2):
+    """
+    gets bearing from point 1 to point 2, utm coords
+
+    inputs:
+    x1 (float): first x coordinate
+    y1 (float): first y coordinate
+    x2 (float): second x coordinate
+    y2 (float): second y coordinate
+
+    outputs:
+    angle (float): the bearing/angle from point 1 to point 2
+    """
     angle = degrees(atan2(y2 - y1, x2 - x1))
     return angle
 
