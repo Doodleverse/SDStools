@@ -1,12 +1,239 @@
 import os
 import numpy as np
+import imageio
 import glob
 from coastsat import SDS_preprocess, SDS_tools
+import skimage
+from typing import List, Set, Tuple
 
 from osgeo import gdal
 from skimage import morphology
 import re
 
+def scale(matrix: np.ndarray, rows: int, cols: int) -> np.ndarray:
+    """returns resized matrix with shape(rows,cols)
+        for 2d discrete labels
+        for resizing 2d integer arrays
+    Args:
+        im (np.ndarray): 2d matrix to resize
+        nR (int): number of rows to resize 2d matrix to
+        nC (int): number of columns to resize 2d matrix to
+
+    Returns:
+        np.ndarray: resized matrix with shape(rows,cols)
+    """
+    src_rows = len(matrix)  # source number of rows
+    src_cols = len(matrix[0])  # source number of columns
+    tmp = [
+        [
+            matrix[int(src_rows * r / rows)][int(src_cols * c / cols)]
+            for c in range(cols)
+        ]
+        for r in range(rows)
+    ]
+    return np.array(tmp).reshape((rows, cols))
+
+def rescale_array(dat, mn, mx):
+    """
+    rescales an input dat between mn and mx
+    Code from doodleverse_utils by Daniel Buscombe
+    source: https://github.com/Doodleverse/doodleverse_utils
+    """
+    m = min(dat.flatten())
+    M = max(dat.flatten())
+    return (mx - mn) * (dat - m) / (M - m) + mn
+
+def matching_datetimes_files(dir1: str, dir2: str) -> Set[str]:
+    """
+    Get the matching datetimes from the filenames in two directories.
+
+    Args:
+        dir1 (str): Path to the first directory.
+        dir2 (str): Path to the second directory.
+
+    Returns:
+        Set[str]: A set of strings representing the common datetimes.
+    """
+    # Get the filenames in each directory
+    files1 = os.listdir(dir1)
+    files2 = os.listdir(dir2)
+
+    # Define a pattern to match the date-time part of the filenames
+    pattern = re.compile(
+        r"\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}"
+    )  # Matches YYYY-MM-DD-HH-MM-SS
+
+    # Create sets of the date-time parts of the filenames in each directory
+    files1_dates = {
+        re.search(pattern, filename).group(0)
+        for filename in files1
+        if re.search(pattern, filename)
+    }
+    files2_dates = {
+        re.search(pattern, filename).group(0)
+        for filename in files2
+        if re.search(pattern, filename)
+    }
+
+    # Find the intersection of the two sets
+    matching_files = files1_dates & files2_dates
+
+    return matching_files
+
+def get_full_paths(
+    dir1: str, dir2: str, common_dates: Set[str]
+) -> Tuple[List[str], List[str]]:
+    """
+    Get the full paths of the files with matching datetimes.
+
+    Args:
+        dir1 (str): Path to the first directory.
+        dir2 (str): Path to the second directory.
+        common_dates (Set[str]): A set of strings representing the common datetimes.
+
+    Returns:
+        Tuple[List[str], List[str]]: Two lists of strings representing the full paths of the matching files in dir1 and dir2.
+    """
+    # Get the filenames in each directory
+    files1 = os.listdir(dir1)
+    files2 = os.listdir(dir2)
+
+    # Define a pattern to match the date-time part of the filenames
+    pattern = re.compile(
+        r"\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}"
+    )  # Matches YYYY-MM-DD-HH-MM-SS
+
+    # Find the full paths of the files with the matching date-times
+    matching_files_dir1 = [
+        os.path.join(dir1, filename)
+        for filename in files1
+        if re.search(pattern, filename)
+        and re.search(pattern, filename).group(0) in common_dates
+    ]
+    matching_files_dir2 = [
+        os.path.join(dir2, filename)
+        for filename in files2
+        if re.search(pattern, filename)
+        and re.search(pattern, filename).group(0) in common_dates
+    ]
+
+    return matching_files_dir1, matching_files_dir2
+
+def get_files(RGB_dir_path: str, img_dir_path: str) -> np.ndarray:
+    """returns matrix of files in RGB_dir_path and img_dir_path
+    creates matrix: RGB x number of samples in img_dir_path
+    Example:
+    [['full_RGB_path.jpg','full_NIR_path.jpg'],
+    ['full_jpg_path.jpg','full_NIR_path.jpg']....]
+    Args:
+        RGB_dir_path (str): full path to directory of RGB images
+        img_dir_path (str): full path to directory of non-RGB images
+        usually NIR and SWIR
+
+    Raises:
+        FileNotFoundError: raised if directory is not found
+    Returns:
+        np.ndarray: A matrix of matching files, shape (bands, number of samples).
+    """
+    if not os.path.exists(RGB_dir_path):
+        raise FileNotFoundError(f"{RGB_dir_path} not found")
+    if not os.path.exists(img_dir_path):
+        raise FileNotFoundError(f"{img_dir_path} not found")
+
+    # get the dates in both directories
+    common_dates = matching_datetimes_files(RGB_dir_path, img_dir_path)
+    # get the full paths to the dates that exist in each directory
+    matching_files_RGB_dir, matching_files_img_dir = get_full_paths(
+        RGB_dir_path, img_dir_path, common_dates
+    )
+    # the order must be RGB dir then not RGB dir for other code to work
+    # matching_files = sorted(matching_files_RGB_dir) + sorted(matching_files_img_dir)
+    files = []
+    files.append(sorted(matching_files_RGB_dir))
+    files.append(sorted(matching_files_img_dir))
+    # creates matrix:  matrix: RGB x number of samples in img_dir_path
+    matching_files = np.vstack(files).T
+    return matching_files
+
+def RGB_to_infrared(
+    RGB_path: str, infrared_path: str, output_path: str, output_type: str
+) -> None:
+    """Converts two directories of RGB and (NIR/SWIR) imagery to (NDWI/MNDWI) imagery in a directory named
+     'NDWI' created at output_path.
+     imagery saved as jpg
+
+     to generate NDWI imagery set infrared_path to full path of NIR images
+     to generate MNDWI imagery set infrared_path to full path of SWIR images
+
+    Args:
+        RGB_path (str): full path to directory containing RGB images
+        infrared_path (str): full path to directory containing NIR or SWIR images
+        output_path (str): full path to directory to create NDWI/MNDWI directory in
+        output_type (str): 'MNDWI' or 'NDWI'
+    Based on code from doodleverse_utils by Daniel Buscombe
+    source: https://github.com/Doodleverse/doodleverse_utils
+    """
+    if output_type.upper() not in ["MNDWI", "NDWI"]:
+        raise Exception(
+            f"Invalid output_type given must be MNDWI or NDWI. Cannot be {output_type}"
+        )
+    # matrix: RGB files x NIR files
+    files = get_files(RGB_path, infrared_path)
+    # output_path: directory to store MNDWI or NDWI outputs
+    output_path = os.path.join(output_path, output_type.upper())
+
+    if not os.path.exists(output_path):
+        os.mkdir(output_path)
+
+    for file in files:
+        # Read green band from RGB image and cast to float
+        green_band = skimage.io.imread(file[0])[:, :, 1].astype("float")
+        # Read infrared(SWIR or NIR) and cast to float
+        infrared = skimage.io.imread(file[1]).astype("float")
+        # Transform 0 to np.nan
+        green_band[green_band == 0] = np.nan
+        infrared[infrared == 0] = np.nan
+        # Mask out NaNs
+        green_band = np.ma.filled(green_band)
+        infrared = np.ma.filled(infrared)
+
+        # ensure both matrices have equivalent size
+        if not np.shape(green_band) == np.shape(infrared):
+            gx, gy = np.shape(green_band)
+            nx, ny = np.shape(infrared)
+            # resize both matrices to have equivalent size
+            green_band = scale(
+                green_band, np.maximum(gx, nx), np.maximum(gy, ny)
+            )
+            infrared = scale(infrared, np.maximum(gx, nx), np.maximum(gy, ny))
+
+        # output_img(MNDWI/NDWI) imagery formula (Green - SWIR) / (Green + SWIR)
+        output_img = (green_band-infrared) / (green_band + infrared )
+        # Convert the NaNs to -1
+        output_img[np.isnan(output_img)] = -1
+        # Rescale to be between 0 - 255
+        output_img = rescale_array(output_img, 0, 255)
+        # create new filenames by replacing image type(SWIR/NIR) with output_type
+        if output_type.upper() == "MNDWI":
+            new_filename = file[1].split(os.sep)[-1].replace("SWIR", output_type)
+        if output_type.upper() == "NDWI":
+            new_filename = file[1].split(os.sep)[-1].replace("NIR", output_type)
+
+        # save output_img(MNDWI/NDWI) as .jpg in output directory
+        # skimage.io.imsave(
+        #     output_path + os.sep + new_filename,
+        #     output_img.astype("uint8"),
+        #     check_contrast=False,
+        #     quality=100,
+        # )
+        # save output_img (MNDWI/NDWI) as .jpg in output directory
+        imageio.imwrite(
+            output_path + os.sep + new_filename,
+            output_img.astype("uint8"),
+            quality=100
+        )
+
+    return output_path
 
 def preprocess_single(
     fn, satname, cloud_mask_issue, pan_off, collection='C02', do_cloud_mask=True, s2cloudless_prob=60
@@ -347,48 +574,55 @@ def save_pansharpened_jpg(
     )
 
 
-### give it a config.json file and it will do the rest
-##
-##config_json_path = r'C:\development\doodleverse\coastseg\CoastSeg\data\ID_wra5_datetime01-10-25__03_58_44\config.json'
-##
-### read the config
-##import json
-##with open(config_json_path) as json_file:
-##    config = json.load(json_file)
-##    roi_ids = config['roi_ids']
-##
-##    # read the settings needed to create jpgs
-##    settings = config['settings']
-##    cloud_threshold = settings.get('cloud_thresh', 0.5)
-##    cloud_mask_issue = settings.get('cloud_mask_issue', False)
-##    apply_cloud_mask = settings.get('apply_cloud_mask', True)
-##
-##
-##    # load the inputs for each ROI 
-##    for roi_id in roi_ids:
-##        inputs = config[roi_id]
-##        print(inputs)
-##        satlist = inputs['sat_list']
-##        for sat in satlist:
-##            print(sat)
-##            tif_paths = SDS_tools.get_filepath(inputs, sat)
-##
-##            # get a list of all the ms files for the given satellite
-##            ms_folder = os.path.join(inputs["filepath"],inputs["sitename"], sat, "ms")
-##            if not os.path.exists(ms_folder):
-##                raise Exception(f"Folder {ms_folder} does not exist")
-##
-##            ms_files = glob.glob(os.path.join(ms_folder, "*.tif"))
-##            for ms_file in ms_files:
-##                print(ms_file)
-##                save_pansharpened_jpg(
-##                    filename=os.path.basename(ms_file),
-##                    tif_paths=tif_paths,
-##                    satname=sat,
-##                    sitename=inputs["sitename"],
-##                    cloud_thresh=cloud_threshold,
-##                    cloud_mask_issue=cloud_mask_issue,
-##                    filepath_data=inputs["filepath"],
-##                    collection=inputs["landsat_collection"],
-##                    apply_cloud_mask=apply_cloud_mask,
-##                )
+# give it a config.json file and it will do the rest
+
+config_json_path = r'C:\development\doodleverse\coastseg\CoastSeg\data\ID_wra5_datetime01-10-25__03_58_44\config.json'
+
+# read the config
+import json
+with open(config_json_path) as json_file:
+    config = json.load(json_file)
+    roi_ids = config['roi_ids']
+
+    # read the settings needed to create jpgs
+    settings = config['settings']
+    cloud_threshold = settings.get('cloud_thresh', 0.5)
+    cloud_mask_issue = settings.get('cloud_mask_issue', False)
+    apply_cloud_mask = settings.get('apply_cloud_mask', True)
+
+
+    # load the inputs for each ROI 
+    for roi_id in roi_ids:
+        inputs = config[roi_id]
+        print(inputs)
+        satlist = inputs['sat_list']
+        for sat in satlist:
+            jpg_files_folder = os.path.join(inputs["filepath"],inputs["sitename"], "jpg_files", "preprocessed")
+            RGB_path = os.path.join(jpg_files_folder, "RGB")
+            print(sat)
+            tif_paths = SDS_tools.get_filepath(inputs, sat)
+
+            # get a list of all the ms files for the given satellite
+            ms_folder = os.path.join(inputs["filepath"],inputs["sitename"], sat, "ms")
+            if not os.path.exists(ms_folder):
+                raise Exception(f"Folder {ms_folder} does not exist")
+
+            ms_files = glob.glob(os.path.join(ms_folder, "*.tif"))
+            for ms_file in ms_files:
+                print(ms_file)
+                save_pansharpened_jpg(
+                    filename=os.path.basename(ms_file),
+                    tif_paths=tif_paths,
+                    satname=sat,
+                    sitename=inputs["sitename"],
+                    cloud_thresh=cloud_threshold,
+                    cloud_mask_issue=cloud_mask_issue,
+                    filepath_data=inputs["filepath"],
+                    collection=inputs["landsat_collection"],
+                    apply_cloud_mask=apply_cloud_mask,
+                )
+            # Recreate the MNDWI and NDWI folder with the new pansharpened images if they exist
+            NIR_path = os.path.join(jpg_files_folder, "NIR")
+            NDWI_path = RGB_to_infrared(RGB_path, NIR_path, jpg_files_folder, "NDWI")
+            SWIR_path = os.path.join(jpg_files_folder, "SWIR")
+            MNDWI_path = RGB_to_infrared(RGB_path, SWIR_path, jpg_files_folder, "MNDWI")

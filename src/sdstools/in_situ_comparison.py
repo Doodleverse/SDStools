@@ -28,24 +28,73 @@ BASEMAP_DARK = cx.providers.CartoDB.DarkMatter ##dark mode for trend maps
 BASEMAP_IMAGERY = cx.providers.Esri.WorldImagery ##world imagery for error maps
 
 def MAPE(in_situ, sds):
+    """
+    computes mean absolute percentage error
+
+    inputs:
+    in_situ (pandas series): in_situ cross-distance measurements
+    sds (pandas series): sds cross-distance measurements
+
+    mape (float): mean absolute percentage error
+    """
     mape = np.mean(np.abs((in_situ-sds)/in_situ))*100
     return mape
 
 def RMSPE(in_situ, sds):
+    """
+    computes root mean sqaured percentage error
+
+    inputs:
+    in_situ (pandas series): in_situ cross-distance measurements
+    sds (pandas series): sds cross-distance measurements
+
+    rmspe (float): root mean squared percentage error
+    """
+
     rmspe = np.sqrt(np.mean(np.square(((in_situ - sds) / in_situ)), axis=0))*100
     return rmspe
 
 def RMSE(in_situ, sds):
+    """
+    computes root mean squared error
+
+    inputs:
+    in_situ (pandas series): in_situ cross-distance measurements
+    sds (pandas series): sds cross-distance measurements
+
+    outputs:
+    rmse (float): root mean squared error
+    """
+
     rmse = np.sqrt(np.mean(np.square(in_situ - sds), axis=0))
     return rmse
 
 def MAE(in_situ, sds):
+    """
+    computes mean absolute error
+
+    inputs:
+    in_situ (pandas series): in_situ cross-distance measurements
+    sds (pandas series): sds cross-distance measurements
+
+    outputs:
+    mae (float): mean absolute error
+    """
+
     mae = np.mean(abs(in_situ - sds))
     return mae
 
-def hampel_filter_df(df, hampel_window=10, hampel_sigma=2):
+def hampel_filter_df(df, hampel_window=3, hampel_sigma=2):
     """
     Applies a Hampel Filter
+
+    inputs:
+    df (pandas dataframe): must have column 'cross_distance' and 'dates'
+    hampel_window (int): odd integer that is less than len(df)
+    hampel_sigma (float): sigma for hampel filter
+    
+    outputs:
+    df (pandas dataframe): filtered dataframe
     """
   
     vals = df['cross_distance'].values
@@ -54,7 +103,20 @@ def hampel_filter_df(df, hampel_window=10, hampel_sigma=2):
     df['cross_distance'] = vals
     return df
 
-def hampel_filter_loop(df, hampel_window=5, hampel_sigma=3):
+def hampel_filter_loop(df, hampel_window=3, hampel_sigma=2):
+    """
+    Applies a Hampel Filter recursively, that is over and over again until no
+    more outliers are computed and removed.
+
+    inputs:
+    df (pandas dataframe): must have column 'cross_distance' and 'dates'
+    hampel_window (int): odd integer that is less than len(df)
+    hampel_sigma (float): sigma for hampel filter
+
+    outputs:
+    df (pandas dataframe): filtered dataframe
+    """
+
     df['date'] = df.index
     num_nans = df['cross_distance'].isna().sum()
     new_num_nans = None
@@ -66,6 +128,50 @@ def hampel_filter_loop(df, hampel_window=5, hampel_sigma=3):
         df = df.dropna()
         h=h+1
     print('hampel iterations: '+str(h))
+    return df
+
+def change_filter(df, q=0.75):
+    """
+    Applies a filter on shoreline change
+    
+    inputs:
+    df (pandas dataframe): must have column 'cross_distance' and 'dates'
+    q (float): quantile to filter daily change below
+
+    outputs:
+    df (pandas dataframe): filtered dataframe
+    """
+    vals = df['cross_distance'].values
+    time = df['dates'] - df['dates'].iloc[0]
+    time = time.dt.days
+    change_y = np.abs(np.diff(vals))
+    change_t = np.diff(time)
+    dy_dt = change_y/change_t
+    dy_dt = np.concat([[0],dy_dt])
+    max_val = np.nanquantile(dy_dt,q)
+    outlier_idxes = dy_dt>max_val
+    vals[outlier_idxes] = np.nan
+    df['cross_distance'] = vals
+    return df
+
+def change_filter_loop(df, iterations=1, q=0.75):
+    """
+    Loops the filter on shoreline change
+    
+    inputs:
+    df (pandas dataframe): must have column 'cross_distance' and 'dates'
+    iterations (int): number of iterations
+    q (float): quantile to filter daily change below
+
+    outputs:
+    df (pandas dataframe): filtered dataframe
+    """
+    
+    h=0
+    for i in range(iterations):
+        df = change_filter(df, q=q)
+        df = df.dropna().reset_index(drop=True)
+        h=h+1
     return df
 
 def gb(x1, y1, x2, y2):
@@ -234,6 +340,14 @@ def get_trends(transect_timeseries_path,
     return new_geo_df_org_crs
 
 def add_north_arrow(ax, north_arrow_params):
+    """
+    adds a north arrow to a geopandas plot
+
+    inputs:
+    ax (geopandas plot axis): the plot you want to add the north arrow to
+    north_arrow_params (tuple): (x, y, arrow_length)
+
+    """
     x,y,arrow_length = north_arrow_params
     ax.annotate('N', xy=(x, y), xytext=(x, y-arrow_length),
                 arrowprops=dict(facecolor='white', width=2, headwidth=4),
@@ -241,9 +355,27 @@ def add_north_arrow(ax, north_arrow_params):
                 xycoords=ax.transAxes)
     
 def remove_nans(arr):
+    """
+    removes nans from numpy array
+
+    inputs:
+    arr (numpy.array): array with nans
+
+    outputs:
+    arr (numpy.array): array with no nans
+    """
     return arr[~np.isnan(arr)]
 
 def remove_nones(my_list):
+    """
+    removes nans from numpy array
+
+    inputs:
+    my_list (list): list with nones
+
+    outputs:
+    new_list (list): list without nones
+    """
     new_list = [x for x in my_list if x is not None]
     return new_list
 
@@ -251,6 +383,10 @@ def in_situ_comparison(home,
                        site,
                        window,
                        plot_timeseries=True,
+                       ts_filter=False,
+                       HAMPEL_WINDOW=3,
+                       HAMPEL_SIGMA=2,
+                       CHANGE_Q=0.75,
                        legend_loc=(0.4,0.6),
                        north_arrow_params=(0.05,0.2,0.1),
                        scale_bar_loc='lower left',
@@ -290,6 +426,8 @@ def in_situ_comparison(home,
     EXT = '.png'
     ##whether or not to make a plot for each timeseries
     PLOT_TIMESERIES = plot_timeseries
+    ##whether or not to apply timeseries filter
+    TS_FILTER = ts_filter
     ##window for analysis (comparing SDS vs in-situ within +/- WINDOW days)
     WINDOW = window
     ##SITE NAME
@@ -303,11 +441,34 @@ def in_situ_comparison(home,
     ##Setting up directories and data for analysis
     data_dir = os.path.join(home, site, 'analysis_ready_data')
     analysis_outputs = os.path.join(home, site, 'analysis_outputs')
+    if TS_FILTER == True:
+        TS_FILTER_STRING = 'ts_filter'
+    else:
+        TS_FILTER_STRING = 'no_ts_filter'
     try:
         os.mkdir(analysis_outputs)
     except:
         pass
-
+    try:
+        os.mkdir(os.path.join(analysis_outputs, site))
+    except:
+        pass
+    try:
+        os.mkdir(os.path.join(analysis_outputs, site, TS_FILTER_STRING))
+    except:
+        pass
+    try:
+        os.mkdir(os.path.join(analysis_outputs, site, TS_FILTER_STRING, 'distributions'))
+    except:
+        pass
+    try:
+        os.mkdir(os.path.join(analysis_outputs, site, TS_FILTER_STRING, 'error_maps'))
+    except:
+        pass
+    try:
+        os.mkdir(os.path.join(analysis_outputs, site, TS_FILTER_STRING, 'trends'))
+    except:
+        pass
 
     ##Analysis starts here
     ##loading data
@@ -382,6 +543,10 @@ def in_situ_comparison(home,
         filter_df_raw = df_raw[df_raw['transect_id']==transect]
         filter_df_raw = filter_df_raw.drop_duplicates(subset=['dates'], keep='first').reset_index(drop=True)
         filter_df_raw = filter_df_raw.sort_values(by='dates').reset_index(drop=True)
+        if TS_FILTER==True:
+            print('applying timeseries filters')
+            filter_df_raw = hampel_filter_loop(filter_df_raw, hampel_window=HAMPEL_WINDOW, hampel_sigma=HAMPEL_SIGMA)
+            filter_df_raw = change_filter_loop(filter_df_raw, iterations=1, q=CHANGE_Q)    
         
         ##corrections
         filter_df_tide = df_tide[df_tide['transect_id']==transect]
@@ -604,6 +769,14 @@ def in_situ_comparison(home,
                                                     'cross_distance_sds_tide':'cross_distance_sds_tide',
                                                     }
                                            )
+    keep_cols = ['dates_in_situ',
+                 'dates_sds',
+                 'timedelta',
+                 'transect_id',
+                 'tide',
+                 'cross_distance_in_situ',
+                 'cross_distance_sds_raw',
+                 'cross_distance_sds_tide']
     comparisons_df.to_csv(os.path.join(analysis_outputs, SITE+'_compared_obs.csv'))
 
     rmse_df = pd.DataFrame({'transect_id':transects.astype(int),
@@ -666,7 +839,32 @@ def in_situ_comparison(home,
                '\n# of Observations = ' + str(len(err_tides_concat))
                )
 
+    comparisons_df['err_raw'] = err_raws_concat
+    comparisons_df['abs_err_raw'] = abs_raws_concat
+    comparisons_df['err_tide'] = err_tides_concat
+    comparisons_df['abs_err_tide'] = abs_tides_concat
 
+    keep_cols = ['dates_in_situ',
+                 'dates_sds',
+                 'timedelta',
+                 'transect_id',
+                 'tide',
+                 'cross_distance_in_situ',
+                 'cross_distance_sds_raw',
+                 'cross_distance_sds_tide',
+                 'err_raw',
+                 'abs_err_raw',
+                 'err_tide',
+                 'abs_err_tide'
+                 ]
+    
+    for col in comparisons_df.columns:
+        if col not in keep_cols:
+            try:
+                comparisons_df = comparisons_df.drop(columns=[col])
+            except:
+                pass
+    comparisons_df.to_csv(os.path.join(analysis_outputs, SITE+'_compared_obs.csv'))
     """
     Plotting error distributions
     """
@@ -720,7 +918,7 @@ def in_situ_comparison(home,
         ax.set_xlim(min(err_tides_concat), max(err_tides_concat))
         ax.legend(loc='upper left')
         plt.tight_layout()
-        plt.savefig(os.path.join(analysis_outputs, SITE+'_err_dists'+EXT), dpi=DPI)
+        plt.savefig(os.path.join(analysis_outputs, site, TS_FILTER_STRING, 'distributions', SITE+'_err_dists'+EXT), dpi=DPI)
         plt.close('all')
         
     ##labels for absolute error distribution plots
@@ -791,7 +989,7 @@ def in_situ_comparison(home,
         ax.legend(loc=legend_loc)
 
         plt.tight_layout()
-        plt.savefig(os.path.join(analysis_outputs, SITE+'_abs_err_dists'+EXT), dpi=DPI)
+        plt.savefig(os.path.join(analysis_outputs, site, TS_FILTER_STRING, 'distributions', SITE+'_abs_err_dists'+EXT), dpi=DPI)
         plt.close('all')
 
     """
@@ -845,7 +1043,7 @@ def in_situ_comparison(home,
     ax.add_artist(ScaleBar(1, location=scale_bar_loc))
     ax.set_axis_off()
     plt.tight_layout()
-    plt.savefig(os.path.join(analysis_outputs, SITE+'_raw_map_rmse'+EXT), dpi=DPI)
+    plt.savefig(os.path.join(analysis_outputs, site, TS_FILTER_STRING, 'error_maps', SITE+'_raw_map_rmse'+EXT), dpi=DPI)
     plt.close('all')
 
     ###Tidally Corrected Experiment RMSE Map
@@ -865,7 +1063,7 @@ def in_situ_comparison(home,
     ax.add_artist(ScaleBar(1, location=scale_bar_loc))
     ax.set_axis_off()
     plt.tight_layout()
-    plt.savefig(os.path.join(analysis_outputs, SITE+'_tidally_corrected_map_rmse'+EXT), dpi=DPI)
+    plt.savefig(os.path.join(analysis_outputs, site, TS_FILTER_STRING, 'error_maps', SITE+'_tidally_corrected_map_rmse'+EXT), dpi=DPI)
     plt.close('all')
 
     ###Raw Experiment MAE Map
@@ -885,7 +1083,7 @@ def in_situ_comparison(home,
     ax.add_artist(ScaleBar(1, location=scale_bar_loc))
     ax.set_axis_off()
     plt.tight_layout()
-    plt.savefig(os.path.join(analysis_outputs, SITE+'_raw_map_mae'+EXT), dpi=DPI)
+    plt.savefig(os.path.join(analysis_outputs, site, TS_FILTER_STRING, 'error_maps', SITE+'_raw_map_mae'+EXT), dpi=DPI)
     plt.close('all')
 
     ###Tidally Corrected Experiment MAE Map
@@ -905,35 +1103,8 @@ def in_situ_comparison(home,
     ax.add_artist(ScaleBar(1, location=scale_bar_loc))
     ax.set_axis_off()
     plt.tight_layout()
-    plt.savefig(os.path.join(analysis_outputs, SITE+'_tidally_corrected_map_mae'+EXT), dpi=DPI)
+    plt.savefig(os.path.join(analysis_outputs, site, TS_FILTER_STRING, 'error_maps',  SITE+'_tidally_corrected_map_mae'+EXT), dpi=DPI)
     plt.close('all')
-
-
-    """
-    This plots the violin plots of RMSE (per transect) for each experiment.
-    """
-    with plt.rc_context({"figure.figsize":(12,5)}):
-        plt.title(SITE)
-        plt.violinplot(data_rmse)
-        plt.xticks([1, 2], ['Raw', 'Tidally Corrected'])
-        plt.ylabel('RMSE (m)')
-        plt.xlabel('Experiment')
-        plt.minorticks_on()
-        plt.savefig(os.path.join(analysis_outputs, SITE+ '_rmse_violinplots'+EXT), dpi=DPI)
-        plt.close()
-
-    """
-    This plots the violin plots of MAE (per transect) for each experiment.
-    """
-    with plt.rc_context({"figure.figsize":(12,5)}):
-        plt.title(SITE)
-        plt.violinplot(data_mae)
-        plt.xticks([1, 2], ['Raw', 'Tidally Corrected'])
-        plt.ylabel('MAE (m)')
-        plt.xlabel('Experiment')
-        plt.minorticks_on()
-        plt.savefig(os.path.join(analysis_outputs, SITE+ '_mae_violinplots'+EXT), dpi=DPI)
-        plt.close()
 
     """
     Plotting trend maps
@@ -965,8 +1136,8 @@ def in_situ_comparison(home,
                                                      max(transect_timeseries_tide['dates']),
                                                      trend_scale)
     ##save trends
-    transects_trends_gdf_raw.to_file(os.path.join(analysis_outputs, SITE+'_raw_transect_trends.geojson'))
-    transects_trends_gdf_tide.to_file(os.path.join(analysis_outputs, SITE+'_tidally_corrected_transect_trends.geojson'))
+    transects_trends_gdf_raw.to_file(os.path.join(analysis_outputs, site, TS_FILTER_STRING, 'trends', SITE+'_raw_transect_trends.geojson'))
+    transects_trends_gdf_tide.to_file(os.path.join(analysis_outputs, site, TS_FILTER_STRING, 'trends', SITE+'_tidally_corrected_transect_trends.geojson'))
 
     ##project to web mercator for plotting
     transects_trends_gdf_raw = transects_trends_gdf_raw.to_crs(epsg=3857)
@@ -986,7 +1157,7 @@ def in_situ_comparison(home,
     ax.add_artist(ScaleBar(1, location=scale_bar_loc))
     ax.set_axis_off()
     plt.tight_layout()
-    plt.savefig(os.path.join(analysis_outputs, SITE+'_raw_map_trends'+EXT), dpi=DPI)
+    plt.savefig(os.path.join(analysis_outputs, site, TS_FILTER_STRING, 'trends', SITE+'_raw_map_trends'+EXT), dpi=DPI)
     plt.close('all')
 
     ###Low Slope Trend Map
@@ -1003,22 +1174,12 @@ def in_situ_comparison(home,
     ax.add_artist(ScaleBar(1, location=scale_bar_loc))
     ax.set_axis_off()
     plt.tight_layout()
-    plt.savefig(os.path.join(analysis_outputs, SITE+'_tidally_corrected_map_trends'+EXT), dpi=DPI)
+    plt.savefig(os.path.join(analysis_outputs, site, TS_FILTER_STRING, 'trends', SITE+'_tidally_corrected_map_trends'+EXT), dpi=DPI)
     plt.close('all')
 
     data_trends = [np.array(transects_trends_gdf_raw['linear_trend']),
                    np.array(transects_trends_gdf_tide['linear_trend'])
                    ]
-    ##make boxplots of trends
-    with plt.rc_context({"figure.figsize":(12,5)}):
-        plt.title(SITE)
-        plt.violinplot(data_trends)
-        plt.xticks([1, 2], ['Raw', 'Tidally Corrected'])
-        plt.ylabel('Trend (m/year)')
-        plt.xlabel('Experiment')
-        plt.minorticks_on()
-        plt.savefig(os.path.join(analysis_outputs, SITE+'_trends_dist'+EXT), dpi=DPI)
-        plt.close()
 
 ##"""
 ##Example call below
@@ -1031,6 +1192,7 @@ def in_situ_comparison(home,
 ##                   site,
 ##                   window,
 ##                   plot_timeseries=plot_timeseries,
+##                   ts_filter=False,
 ##                   legend_loc=(0.4,0.6),
 ##                   north_arrow_params=(0.05,0.2,0.1),
 ##                   scale_bar_loc='lower left',
