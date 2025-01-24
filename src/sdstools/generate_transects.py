@@ -843,6 +843,7 @@ def make_and_merge_transects_for_region(home, G, C, RR, version_name, transect_s
     G (str): global region
     C (str): coastal area
     RR (str): subregion
+    version_name (str): version of transects
     transect_spacing (float): spacing in meters
     transect_length (float): length in meters
     outputs:
@@ -874,3 +875,67 @@ def make_and_merge_transects_for_region(home, G, C, RR, version_name, transect_s
     merged_transects = pd.concat(trans_gdfs)
     merged_transects.to_file(merged_transects_path)
     return merged_transects_path
+
+def rename_transects(G, C, RR, SSS, version_name, transects_path):
+    """
+    Takes user generated trasnects and renames them in accordance to the USGS scheme.
+    Transects must be in order along the shoreline and spaced 50 m apart.
+    You provide the global region, coastal area, subregion, shoreline section, and transects.
+
+    inputs:
+    G (str): global region
+    C (str): coastal area
+    RR (str): subregion
+    SSS (str): shoreline section
+    version_name (str): version
+    transects_path (str): path to the transects (.geojson)
+
+    outputs:
+    new_transects_path (str): path to the new transects
+    """
+
+    transects = gpd.read_file(transects_path)
+    new_transects_path = os.path.join(os.path.dirname(transects_path), G+C+RR+SSS+'_transects.geojson')
+    transects = transects.reset_index(drop=True)
+    transects['longshore_length'] = transects.index*50
+    names = [None]*len(transects)
+    geometries = list(transects['geometry'])
+    names = [None]*len(transects)
+    geometries = list(transects['geometry'])
+    
+    for index, row in transects.iterrows():
+        name = G+C+RR+SSS+version_name+str(row['longshore_length']).zfill(6)
+        names[index] = name
+    
+    ##assigning collumns
+    transects['G'] = [G]*len(transects)
+    transects['C'] = [C]*len(transects)
+    transects['RR'] = [RR]*len(transects)
+    transects['SSS'] = [SSS]*len(transects)
+    transects['V'] = [version_name]*len(transects)
+    transects['transect_id'] = names
+
+    ##drop extra columns
+    keep_columns = ['G', 'C', 'RR', 'SSS', 'V', 'transect_id', 'geometry', 'longshore_length']
+    for col in transects.columns:
+        if col not in keep_columns:
+            transects = transects.drop(columns=[col])
+
+    transects.to_file(new_transects_path)
+    return new_transects_path
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
